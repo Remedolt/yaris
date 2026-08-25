@@ -49,6 +49,14 @@ body {
   overflow: hidden;
 }
 
+#stage:fullscreen,
+#stage:-webkit-full-screen {
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  box-shadow: none;
+}
+
 #game {
   display: block;
   width: 100%;
@@ -113,7 +121,24 @@ body {
 
 .hud-bottom {
   align-items: flex-end;
-  justify-content: flex-end;
+  justify-content: space-between;
+}
+
+.hud-btn {
+  pointer-events: auto;
+  font-family: inherit;
+  font-size: clamp(7px, 0.95vw, 10px);
+  color: #12061f;
+  background: var(--gold);
+  border: 3px solid #fff;
+  padding: 10px 12px;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 #6b1d6e;
+}
+
+.hud-btn:hover,
+.hud-btn:focus-visible {
+  background: var(--cyan);
 }
 
 .hud-left,
@@ -360,6 +385,18 @@ h1 {
 .arcade-btn:active {
   transform: translate(2px, 2px);
   box-shadow: 2px 2px 0 #6b1d6e;
+}
+
+.arcade-btn.alt {
+  background: var(--cyan);
+}
+
+.overlay-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 8px;
 }
 
 /* ---------- Touch cluster ---------- */
