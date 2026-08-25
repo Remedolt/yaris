@@ -1486,7 +1486,6 @@ KKKKKKKKKKKKKKKK
     hud.classList.add("hidden");
     overlay.classList.remove("hidden");
     overlayInner.innerHTML =
-      '<p class="kicker">RETRO ARKAD</p>' +
       "<h1>ZAMAN<br />YARIŞI</h1>" +
       '<p class="ver">v1.2 — ÇÖL OTOYOLU</p>' +
       '<p class="blink" id="overlay-prompt">BAŞLAMAK İÇİN ENTER / TIKLA</p>' +
