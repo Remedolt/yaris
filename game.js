@@ -645,16 +645,18 @@ KKKKKKKKKKKKKKKK
 
   function paintCitySigns(cg, buildings) {
     cg.imageSmoothingEnabled = false;
-    cg.textAlign = "center";
+    cg.textAlign = "left";
     cg.textBaseline = "middle";
     cg.font = "10px 'Press Start 2P', monospace";
     buildings.forEach(function (b) {
       if (!b.sign) return;
-      const top = 150 - b.h;
+      const tw = Math.ceil(cg.measureText("DENIZ").width);
+      const tx = Math.round(b.x + (b.w - tw) / 2);
+      const ty = Math.round(150 - b.h / 2);
       cg.fillStyle = "#071018";
-      cg.fillRect(b.x + 4, top + 6, b.w - 8, 18);
+      cg.fillRect(b.x + 4, ty - 10, b.w - 8, 20);
       cg.fillStyle = b.signColor || "#3ef0ff";
-      cg.fillText("DENIZ", b.x + b.w / 2, top + 15);
+      cg.fillText("DENIZ", tx, ty);
     });
   }
 
@@ -743,8 +745,9 @@ KKKKKKKKKKKKKKKK
       cg.fillStyle = b.c;
       cg.fillRect(b.x, 150 - b.h, b.w, b.h);
       cg.fillStyle = idx % 3 === 0 ? "#ff7a18" : "#3ef0ff";
-      const winTop = b.sign ? 150 - b.h + 28 : 150 - b.h + 8;
+      const winTop = 150 - b.h + 8;
       for (let wy = winTop; wy < 145; wy += 10) {
+        if (b.sign && wy > 150 - b.h / 2 - 12 && wy < 150 - b.h / 2 + 10) continue;
         for (let wx = b.x + 4; wx < b.x + b.w - 4; wx += 8) {
           if ((wx + wy + idx) % 5 === 0) continue;
           cg.fillRect(wx, wy, 4, 5);
@@ -903,11 +906,11 @@ KKKKKKKKKKKKKKKK
         const seg = segments[start + k];
         seg.service = true;
         seg.sprites = [];
-        if (k === 2 || k === Math.floor(len / 2)) {
+        if (k % 8 === 2 || k === Math.floor(len / 2)) {
           seg.sprites.push({ src: SPRITES.serviceSign, offset: -1.12, service: true });
           seg.sprites.push({ src: SPRITES.serviceSign, offset: 1.12, service: true });
         }
-        if (k % 6 === 0) {
+        if (k % 5 === 0) {
           seg.sprites.push({ src: SPRITES.garage, offset: -1.35, service: true });
           seg.sprites.push({ src: SPRITES.garage, offset: 1.35, service: true });
         }
