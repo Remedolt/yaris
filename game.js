@@ -1,5 +1,5 @@
 /**
- * Kankinin Yarışı v1.0
+ * Zaman Yarışı v1.1
  * OutRun / Lotus-style pseudo-3D racer.
  *
  * Tweak the CFG object first — every gameplay number lives there.
@@ -100,6 +100,185 @@
   const playerZCam = CFG.CAMERA_HEIGHT * cameraDepth;
 
   // =====================================================================
+  //  AUDIO — Web Audio synth (no files; works on GitHub Pages)
+  // =====================================================================
+  const SFX = {
+    ctx: null,
+    master: null,
+    musicGain: null,
+    sfxGain: null,
+    engineOsc: null,
+    engineOsc2: null,
+    engineFilt: null,
+    engineGain: null,
+    musicPlaying: false,
+    step: 0,
+    nextT: 0,
+  };
+
+  function audioUnlock() {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    if (!SFX.ctx) {
+      SFX.ctx = new AC();
+      SFX.master = SFX.ctx.createGain();
+      SFX.master.gain.value = 0.7;
+      SFX.master.connect(SFX.ctx.destination);
+
+      SFX.musicGain = SFX.ctx.createGain();
+      SFX.musicGain.gain.value = 0.22;
+      SFX.musicGain.connect(SFX.master);
+
+      SFX.sfxGain = SFX.ctx.createGain();
+      SFX.sfxGain.gain.value = 0.55;
+      SFX.sfxGain.connect(SFX.master);
+
+      SFX.engineFilt = SFX.ctx.createBiquadFilter();
+      SFX.engineFilt.type = "lowpass";
+      SFX.engineFilt.Q.value = 1.1;
+      SFX.engineFilt.frequency.value = 420;
+      SFX.engineGain = SFX.ctx.createGain();
+      SFX.engineGain.gain.value = 0;
+      SFX.engineOsc = SFX.ctx.createOscillator();
+      SFX.engineOsc.type = "sawtooth";
+      SFX.engineOsc.frequency.value = 52;
+      SFX.engineOsc2 = SFX.ctx.createOscillator();
+      SFX.engineOsc2.type = "square";
+      SFX.engineOsc2.frequency.value = 53.2;
+      const g2 = SFX.ctx.createGain();
+      g2.gain.value = 0.16;
+      SFX.engineOsc.connect(SFX.engineFilt);
+      SFX.engineOsc2.connect(g2);
+      g2.connect(SFX.engineFilt);
+      SFX.engineFilt.connect(SFX.engineGain);
+      SFX.engineGain.connect(SFX.master);
+      SFX.engineOsc.start();
+      SFX.engineOsc2.start();
+    }
+    if (SFX.ctx.state === "suspended") SFX.ctx.resume();
+  }
+
+  function tone(dest, type, freq, dur, vol, when, slide) {
+    if (!SFX.ctx || !dest) return;
+    const t = when != null ? when : SFX.ctx.currentTime;
+    const o = SFX.ctx.createOscillator();
+    const g = SFX.ctx.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(Math.max(20, freq), t);
+    if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(20, slide), t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0002, vol), t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g);
+    g.connect(dest);
+    o.start(t);
+    o.stop(t + dur + 0.03);
+  }
+
+  function noiseBurst(dur, vol, freq, when) {
+    if (!SFX.ctx) return;
+    const t = when != null ? when : SFX.ctx.currentTime;
+    const n = SFX.ctx.createBufferSource();
+    const len = Math.max(1, Math.ceil(SFX.ctx.sampleRate * dur));
+    const buf = SFX.ctx.createBuffer(1, len, SFX.ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+    n.buffer = buf;
+    const f = SFX.ctx.createBiquadFilter();
+    f.type = "bandpass";
+    f.frequency.value = freq;
+    const g = SFX.ctx.createGain();
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    n.connect(f);
+    f.connect(g);
+    g.connect(SFX.sfxGain);
+    n.start(t);
+    n.stop(t + dur + 0.02);
+  }
+
+  const BASS = [55.0, 55.0, 82.41, 73.42, 55.0, 65.41, 73.42, 82.41];
+  const LEAD = [220, 246.94, 261.63, 329.63, 392, 329.63, 261.63, 246.94, 220, 196, 174.61, 196, 220, 261.63, 246.94, 196];
+
+  function startMusic() {
+    audioUnlock();
+    if (!SFX.ctx) return;
+    SFX.musicPlaying = true;
+    SFX.nextT = Math.max(SFX.nextT, SFX.ctx.currentTime + 0.04);
+  }
+
+  function tickMusic() {
+    if (!SFX.ctx || !SFX.musicPlaying) return;
+    const now = SFX.ctx.currentTime;
+    while (SFX.nextT < now + 0.14) {
+      const i = SFX.step % 16;
+      tone(SFX.musicGain, "triangle", BASS[i % BASS.length], 0.16, 0.09, SFX.nextT);
+      if (i % 2 === 0) tone(SFX.musicGain, "square", LEAD[i], 0.11, 0.032, SFX.nextT);
+      if (i % 8 === 0) tone(SFX.musicGain, "sawtooth", BASS[i % BASS.length] * 2, 0.28, 0.018, SFX.nextT);
+      SFX.step++;
+      SFX.nextT += 0.17;
+    }
+  }
+
+  function setEngine(speedPct, on) {
+    if (!SFX.ctx || !SFX.engineGain) return;
+    const t = SFX.ctx.currentTime;
+    if (!on) {
+      SFX.engineGain.gain.setTargetAtTime(0, t, 0.06);
+      return;
+    }
+    const f = 46 + speedPct * 155;
+    SFX.engineOsc.frequency.setTargetAtTime(f, t, 0.04);
+    SFX.engineOsc2.frequency.setTargetAtTime(f * 1.02, t, 0.04);
+    SFX.engineFilt.frequency.setTargetAtTime(300 + speedPct * 2200, t, 0.06);
+    SFX.engineGain.gain.setTargetAtTime(0.035 + speedPct * 0.11, t, 0.06);
+  }
+
+  function setPausedAudio(paused) {
+    if (!SFX.ctx) return;
+    const t = SFX.ctx.currentTime;
+    if (SFX.musicGain) SFX.musicGain.gain.setTargetAtTime(paused ? 0.04 : 0.22, t, 0.08);
+    if (paused) setEngine(0, false);
+  }
+
+  function sfxStart() {
+    audioUnlock();
+    if (!SFX.ctx) return;
+    const t = SFX.ctx.currentTime;
+    tone(SFX.sfxGain, "sawtooth", 90, 0.32, 0.12, t, 240);
+    tone(SFX.sfxGain, "square", 220, 0.16, 0.06, t + 0.08);
+  }
+
+  function sfxPickup() {
+    if (!SFX.ctx) return;
+    const t = SFX.ctx.currentTime;
+    tone(SFX.sfxGain, "square", 523.25, 0.08, 0.08, t);
+    tone(SFX.sfxGain, "square", 659.25, 0.08, 0.08, t + 0.07);
+    tone(SFX.sfxGain, "square", 783.99, 0.12, 0.09, t + 0.14);
+  }
+
+  function sfxCrash() {
+    if (!SFX.ctx) return;
+    noiseBurst(0.22, 0.28, 280, SFX.ctx.currentTime);
+    tone(SFX.sfxGain, "sawtooth", 140, 0.25, 0.16, SFX.ctx.currentTime, 40);
+  }
+
+  function sfxWin() {
+    if (!SFX.ctx) return;
+    const t = SFX.ctx.currentTime;
+    [523.25, 659.25, 783.99, 1046.5].forEach(function (f, i) {
+      tone(SFX.sfxGain, "square", f, 0.22, 0.1, t + i * 0.12);
+    });
+  }
+
+  function sfxLose() {
+    if (!SFX.ctx) return;
+    const t = SFX.ctx.currentTime;
+    tone(SFX.sfxGain, "sawtooth", 220, 0.35, 0.12, t, 90);
+    tone(SFX.sfxGain, "triangle", 110, 0.5, 0.1, t + 0.12, 55);
+  }
+
+  // =====================================================================
   //  INPUT
   // =====================================================================
   const keys = { left: false, right: false, up: false, down: false };
@@ -128,6 +307,8 @@
       }
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
+        audioUnlock();
+        startMusic();
         onConfirm();
       }
       if (e.key === "p" || e.key === "P") {
@@ -146,6 +327,8 @@
     });
 
     overlay.addEventListener("click", (e) => {
+      audioUnlock();
+      startMusic();
       if (e.target.closest("button")) return;
       if (mode === "paused") return;
       onConfirm();
@@ -452,10 +635,6 @@ KKKKKKKKKKKKKKKK
     grad.addColorStop(1, "#ffd36a");
     sg.fillStyle = grad;
     sg.fillRect(0, 0, CFG.WIDTH, 280);
-    for (let y = 0; y < 280; y += 2) {
-      sg.fillStyle = "rgba(0,0,0,0.07)";
-      sg.fillRect(0, y, CFG.WIDTH, 1);
-    }
     sg.fillStyle = "#fff6c8";
     for (let i = 0; i < 50; i++) {
       const x = (i * 97) % CFG.WIDTH;
@@ -536,12 +715,12 @@ KKKKKKKKKKKKKKKK
       }
     });
     cg.fillStyle = "#3ef0ff";
-    cg.font = "10px 'Press Start 2P', monospace";
-    cg.fillText("DENIZ", 152, 42);
-    cg.fillText("DENIZ", 448, 32);
-    cg.fillText("DENIZ", 910, 36);
+    cg.font = "14px 'Press Start 2P', monospace";
+    cg.fillText("DENIZ", 148, 40);
+    cg.fillText("DENIZ", 442, 30);
+    cg.fillText("DENIZ", 904, 34);
     cg.fillStyle = "#ffd36a";
-    cg.fillText("DENIZ", 1348, 44);
+    cg.fillText("DENIZ", 1340, 42);
 
     // lattice pylons along the city base
     cg.strokeStyle = "#6a4a9a";
@@ -989,6 +1168,7 @@ KKKKKKKKKKKKKKKK
         player.fuel = Math.min(100, player.fuel + CFG.FUEL_PICKUP);
         segment.sprites.splice(i, 1);
         player.pickupTimer = 1.1;
+        sfxPickup();
         if (pickupMsg) {
           pickupMsg.textContent = "BENZİN +" + CFG.FUEL_PICKUP + "%";
           pickupMsg.classList.remove("hidden");
@@ -1006,6 +1186,7 @@ KKKKKKKKKKKKKKKK
         player.damage = Math.min(100, player.damage + CFG.DAMAGE_PER_HIT);
         player.invuln = CFG.INVULN_TIME;
         player.hitTimer = 0.35;
+        sfxCrash();
         if (player.damage >= 100) endRace("damage");
         return;
       }
@@ -1207,6 +1388,10 @@ KKKKKKKKKKKKKKKK
   }
 
   function startPlaying() {
+    audioUnlock();
+    startMusic();
+    sfxStart();
+    setPausedAudio(false);
     resetRace();
     mode = "playing";
     overlay.classList.add("hidden");
@@ -1225,19 +1410,23 @@ KKKKKKKKKKKKKKKK
     mode = reason === "win" ? "win" : "gameover";
     hud.classList.add("hidden");
     hitFlash.classList.remove("on");
+    setEngine(0, false);
     if (reason === "win") {
+      sfxWin();
       setOverlay(
         '<p class="kicker">FİNİŞ ÇİZGİSİ</p><h1>KAZANDIN</h1>',
         "SÜRE " + formatTime(raceTime) + "  ·  HASAR %" + Math.round(player.damage),
         "TEKRAR YARIŞ"
       );
     } else if (reason === "fuel") {
+      sfxLose();
       setOverlay(
         '<p class="kicker">BENZİN BİTTİ</p><h1>OYUN BİTTİ</h1>',
         "Depo tur " + player.lap + "/" + CFG.TOTAL_LAPS + " sırasında boşaldı.",
         "TEKRAR"
       );
     } else {
+      sfxLose();
       setOverlay(
         '<p class="kicker">KAZA</p><h1>OYUN BİTTİ</h1>',
         "Hasar %100'e çıktı — şasi bir darbe daha kaldıramadı.",
@@ -1248,6 +1437,9 @@ KKKKKKKKKKKKKKKK
 
   function resumeFromPause() {
     if (mode !== "paused") return;
+    audioUnlock();
+    startMusic();
+    setPausedAudio(false);
     mode = "playing";
     overlay.classList.add("hidden");
     hud.classList.remove("hidden");
@@ -1265,6 +1457,7 @@ KKKKKKKKKKKKKKKK
   function togglePause() {
     if (mode === "playing") {
       mode = "paused";
+      setPausedAudio(true);
       hud.classList.add("hidden");
       setOverlay(
         '<p class="kicker">DURAKLATILDI</p><h1>DUR</h1>',
@@ -1283,8 +1476,8 @@ KKKKKKKKKKKKKKKK
     overlay.classList.remove("hidden");
     overlayInner.innerHTML =
       '<p class="kicker">RETRO ARKAD</p>' +
-      "<h1>KANKININ<br />YARIŞI</h1>" +
-      '<p class="ver">v1.0 — ÇÖL OTOYOLU</p>' +
+      "<h1>ZAMAN<br />YARIŞI</h1>" +
+      '<p class="ver">v1.1 — ÇÖL OTOYOLU</p>' +
       '<p class="blink" id="overlay-prompt">BAŞLAMAK İÇİN ENTER / TIKLA</p>' +
       '<ul class="help"><li><kbd>↑</kbd><kbd>W</kbd> GAZ</li>' +
       "<li><kbd>↓</kbd><kbd>S</kbd> FREN</li>" +
@@ -1305,6 +1498,8 @@ KKKKKKKKKKKKKKKK
     last = now;
     update(dt);
     render();
+    tickMusic();
+    setEngine(mode === "playing" ? player.speed / CFG.MAX_SPEED : 0, mode === "playing");
     requestAnimationFrame(loop);
   }
 

@@ -4,12 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#12061f" />
-  <title>Kankinin Yarışı v1.0</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <title>Zaman Yarışı</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2312051f'/%3E%3Cpath fill='%233d7cff' d='M6 20h20l-3 6H9z'/%3E%3Cpath fill='%23ff7a18' d='M10 26h3v3h-3zm9 0h3v3h-3z'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=3" />
 </head>
 <body>
   <div id="stage">
@@ -28,7 +29,7 @@
           <div id="lap-label">TUR 01/03</div>
         </div>
         <div class="hud-right">
-          <div class="project-title">KANKININ YARIŞI</div>
+          <div class="project-title">ZAMAN YARIŞI</div>
           <div class="meter">
             <span class="meter-icon">⛽</span>
             <span class="meter-label">BENZİN</span>
@@ -47,7 +48,7 @@
       <div class="hud-bottom">
         <button type="button" id="pause-btn" class="hud-btn">DURDUR</button>
         <div class="speedo">
-          <div class="speedo-ver">KANKININ YARIŞI V1.0</div>
+          <div class="speedo-ver">ZAMAN YARIŞI V1.1</div>
           <div id="speed-label">HIZ: 000 km/s</div>
           <div class="rpm"><div id="rpm-fill"></div></div>
         </div>
@@ -57,8 +58,8 @@
     <div id="overlay">
       <div class="overlay-inner" id="overlay-inner">
         <p class="kicker">RETRO ARKAD</p>
-        <h1>KANKININ<br />YARIŞI</h1>
-        <p class="ver">v1.0 — ÇÖL OTOYOLU</p>
+        <h1>ZAMAN<br />YARIŞI</h1>
+        <p class="ver">v1.1 — ÇÖL OTOYOLU</p>
         <p class="blink" id="overlay-prompt">BAŞLAMAK İÇİN ENTER / TIKLA</p>
         <ul class="help">
           <li><kbd>↑</kbd><kbd>W</kbd> GAZ</li>
@@ -79,6 +80,6 @@
     </div>
   </div>
 
-  <script src="game.js"></script>
+  <script src="game.js?v=3"></script>
 </body>
 </html>
