@@ -472,11 +472,7 @@ KKKKKKKKKKKKKKKK
     sg.beginPath();
     sg.arc(CFG.WIDTH * 0.62, 168, 58, 0, Math.PI * 2);
     sg.fill();
-    sg.fillStyle = "rgba(200,210,220,0.35)";
-    for (let i = 0; i < 8; i++) {
-      const y = 18 + i * 22;
-      sg.fillRect(40 + i * 90, y, 140 + (i % 3) * 40, 5);
-    }
+    sg.globalAlpha = 1;
 
     BG.mountains = document.createElement("canvas");
     BG.mountains.width = 1920;
@@ -541,10 +537,11 @@ KKKKKKKKKKKKKKKK
     });
     cg.fillStyle = "#3ef0ff";
     cg.font = "10px 'Press Start 2P', monospace";
-    cg.fillText("YARIS", 158, 48);
-    cg.fillText("YARIS", 922, 40);
+    cg.fillText("DENIZ", 152, 42);
+    cg.fillText("DENIZ", 448, 32);
+    cg.fillText("DENIZ", 910, 36);
     cg.fillStyle = "#ffd36a";
-    cg.fillText("TR", 1370, 52);
+    cg.fillText("DENIZ", 1348, 44);
 
     // lattice pylons along the city base
     cg.strokeStyle = "#6a4a9a";
@@ -1142,20 +1139,6 @@ KKKKKKKKKKKKKKKK
       spr.height * scale
     );
     ctx.restore();
-
-    // Speed lines
-    if (player.speed > CFG.MAX_SPEED * 0.55) {
-      ctx.strokeStyle = "rgba(255,255,255,0.18)";
-      ctx.lineWidth = 2;
-      for (let i = 0; i < 10; i++) {
-        const sx = (i * 97 + (performance.now() * 0.4)) % CFG.WIDTH;
-        const sy = 280 + (i * 37) % 220;
-        ctx.beginPath();
-        ctx.moveTo(sx, sy);
-        ctx.lineTo(sx, sy + 18 + (player.speed / CFG.MAX_SPEED) * 20);
-        ctx.stroke();
-      }
-    }
   }
 
   // =====================================================================
