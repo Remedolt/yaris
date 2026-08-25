@@ -883,8 +883,8 @@ KKKKKKKKKKKKKKKK
   }
 
   function roadsideFor(segment, i) {
-    if (segment.service) return;
     const side = i % 2 === 0 ? -1 : 1;
+    if (segment.service && side > 0) return;
     const far = 1.3 + (i % 5) * 0.25;
     if (i % 9 === 0) segment.sprites.push({ src: SPRITES.palm, offset: side * (1.5 + (i % 3) * 0.2) });
     else if (i % 7 === 0) segment.sprites.push({ src: SPRITES.pylon, offset: side * 1.85 });
@@ -905,18 +905,11 @@ KKKKKKKKKKKKKKKK
       for (let k = 0; k < len && start + k < n; k++) {
         const seg = segments[start + k];
         seg.service = true;
-        seg.sprites = [];
-        if (k % 8 === 2 || k === Math.floor(len / 2)) {
-          seg.sprites.push({ src: SPRITES.serviceSign, offset: -1.12, service: true });
-          seg.sprites.push({ src: SPRITES.serviceSign, offset: 1.12, service: true });
+        if (k === 3) {
+          seg.sprites.push({ src: SPRITES.serviceSign, offset: 1.18, service: true });
         }
-        if (k % 5 === 0) {
-          seg.sprites.push({ src: SPRITES.garage, offset: -1.35, service: true });
-          seg.sprites.push({ src: SPRITES.garage, offset: 1.35, service: true });
-        }
-        if (k % 5 === 2) {
-          seg.sprites.push({ src: SPRITES.lamp, offset: -1.18 });
-          seg.sprites.push({ src: SPRITES.lamp, offset: 1.18 });
+        if (k === 14 || k === 32) {
+          seg.sprites.push({ src: SPRITES.garage, offset: 1.32, service: true });
         }
       }
     }
@@ -1024,28 +1017,36 @@ KKKKKKKKKKKKKKKK
     const l1 = laneMarkerWidth(w1, CFG.LANES);
     const l2 = laneMarkerWidth(w2, CFG.LANES);
 
-    ctx.fillStyle = service ? "#1e6a3a" : color.grass;
+    ctx.fillStyle = color.grass;
     ctx.fillRect(0, y2, CFG.WIDTH, y1 - y2);
 
-    const shoulder = service ? "#3dff8a" : color.shoulder;
-    const rumble = service ? "#ffd36a" : color.rumble;
-    const road = service ? "#1c2838" : color.road;
-    const lane = service ? "#d8ffe8" : color.lane;
+    polygon(x1 - w1 - r1, y1, x1 - w1, y1, x2 - w2, y2, x2 - w2 - r2, y2, color.shoulder);
+    polygon(x1 + w1 + r1, y1, x1 + w1, y1, x2 + w2, y2, x2 + w2 + r2, y2, service ? "#2a8a48" : color.shoulder);
+    polygon(x1 - w1 - r1, y1, x1 - w1 - r1 - r1, y1, x2 - w2 - r2 - r2, y2, x2 - w2 - r2, y2, color.rumble);
+    polygon(x1 + w1 + r1, y1, x1 + w1 + r1 + r1, y1, x2 + w2 + r2 + r2, y2, x2 + w2 + r2, y2, service ? "#ffd36a" : color.rumble);
+    polygon(x1 - w1, y1, x1 + w1, y1, x2 + w2, y2, x2 - w2, y2, color.road);
 
-    polygon(x1 - w1 - r1, y1, x1 - w1, y1, x2 - w2, y2, x2 - w2 - r2, y2, shoulder);
-    polygon(x1 + w1 + r1, y1, x1 + w1, y1, x2 + w2, y2, x2 + w2 + r2, y2, shoulder);
-    polygon(x1 - w1 - r1, y1, x1 - w1 - r1 - r1, y1, x2 - w2 - r2 - r2, y2, x2 - w2 - r2, y2, rumble);
-    polygon(x1 + w1 + r1, y1, x1 + w1 + r1 + r1, y1, x2 + w2 + r2 + r2, y2, x2 + w2 + r2, y2, rumble);
-    polygon(x1 - w1, y1, x1 + w1, y1, x2 + w2, y2, x2 - w2, y2, road);
+    if (service) {
+      polygon(
+        x1 + w1 / 3,
+        y1,
+        x1 + w1,
+        y1,
+        x2 + w2,
+        y2,
+        x2 + w2 / 3,
+        y2,
+        "#1a3a28"
+      );
+    }
 
-    // Dashes only on "light" slices so they flicker past like painted lane markers
-    if (service || color === COLORS.light) {
+    if (color === COLORS.light) {
       const laneW1 = (w1 * 2) / CFG.LANES;
       const laneW2 = (w2 * 2) / CFG.LANES;
       let lx1 = x1 - w1 + laneW1;
       let lx2 = x2 - w2 + laneW2;
       for (let laneN = 1; laneN < CFG.LANES; lx1 += laneW1, lx2 += laneW2, laneN++) {
-        polygon(lx1 - l1 / 2, y1, lx1 + l1 / 2, y1, lx2 + l2 / 2, y2, lx2 - l2 / 2, y2, lane);
+        polygon(lx1 - l1 / 2, y1, lx1 + l1 / 2, y1, lx2 + l2 / 2, y2, lx2 - l2 / 2, y2, color.lane);
       }
     }
   }
@@ -1188,7 +1189,7 @@ KKKKKKKKKKKKKKKK
 
   function checkService(segment) {
     if (!segment || !segment.service) return false;
-    if (Math.abs(player.x) > 1.08) return false;
+    if (player.x < 0.32 || player.x > 1.05) return false;
     if (player.serviceLock) return true;
     player.serviceLock = true;
     if (player.damage > 0) {
