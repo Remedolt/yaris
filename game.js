@@ -41,7 +41,7 @@
     HIT_SPEED_FACTOR: 0.38,     // speed kept after a crash
     INVULN_TIME: 0.85,          // seconds of grace after a hit
     SERVICE_COUNT: 2,           // rare pit stops per full loop
-    SERVICE_LENGTH: 48,         // segments long (visible pit lane)
+    SERVICE_LENGTH: 28,         // short right-lane pit
     // Sprite size = pixelWidth * scale * (WIDTH/2) * SPRITE_SCALE * ROAD_WIDTH
     // 0.3 / referencePixelWidth — keep in lockstep with the largest sprite (~24px)
     SPRITE_SCALE: 0.3 / 24,
@@ -905,10 +905,10 @@ KKKKKKKKKKKKKKKK
       for (let k = 0; k < len && start + k < n; k++) {
         const seg = segments[start + k];
         seg.service = true;
-        if (k === 3) {
+        if (k === 2) {
           seg.sprites.push({ src: SPRITES.serviceSign, offset: 1.18, service: true });
         }
-        if (k === 14 || k === 32) {
+        if (k === 18) {
           seg.sprites.push({ src: SPRITES.garage, offset: 1.32, service: true });
         }
       }
@@ -1036,7 +1036,7 @@ KKKKKKKKKKKKKKKK
         y2,
         x2 + w2 / 3,
         y2,
-        "#1a3a28"
+        "#252e28"
       );
     }
 
@@ -1319,7 +1319,7 @@ KKKKKKKKKKKKKKKK
 
       for (let i = 0; i < segment.sprites.length; i++) {
         const sp = segment.sprites[i];
-        const spriteScale = segment.p1.screen.scale * (sp.service ? 1.7 : 1);
+        const spriteScale = segment.p1.screen.scale * (sp.service ? 1.25 : 1);
         const spriteX = segment.p1.screen.x + segment.p1.screen.w * sp.offset;
         const spriteY = segment.p1.screen.y;
         drawSprite(sp.src, spriteScale, spriteX, spriteY, sp.offset < 0 ? -1 : 0, -1, segment.clip);
