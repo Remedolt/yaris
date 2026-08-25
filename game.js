@@ -1,5 +1,5 @@
 /**
- * Zaman Yarışı v1.1
+ * Zaman Yarışı v1.2
  * OutRun / Lotus-style pseudo-3D racer.
  *
  * Tweak the CFG object first — every gameplay number lives there.
@@ -37,14 +37,11 @@
     PLAYER_WIDTH: 0.22,         // collision width in "road halves" (1.0 = edge)
     CAR_WIDTH: 0.22,
     TRAFFIC_COUNT: 34,          // NPC araç (kamyon + araba)
-    TOTAL_LAPS: 3,
     DAMAGE_PER_HIT: 14,         // percent added on a car collision
     HIT_SPEED_FACTOR: 0.38,     // speed kept after a crash
     INVULN_TIME: 0.85,          // seconds of grace after a hit
-    FUEL_IDLE: 1.6,             // % / second at standstill
-    FUEL_RACE: 3.4,             // extra % / second at MAX_SPEED
-    FUEL_PICKUP: 22,            // kenardaki bidondan gelen benzin %
-    FUEL_SPACING: 36,           // kaç segmentte bir bidon
+    SERVICE_COUNT: 2,           // rare pit stops per full loop
+    SERVICE_LENGTH: 48,         // segments long (visible pit lane)
     // Sprite size = pixelWidth * scale * (WIDTH/2) * SPRITE_SCALE * ROAD_WIDTH
     // 0.3 / referencePixelWidth — keep in lockstep with the largest sprite (~24px)
     SPRITE_SCALE: 0.3 / 24,
@@ -80,9 +77,8 @@
   const overlay = document.getElementById("overlay");
   const overlayInner = document.getElementById("overlay-inner");
   const hud = document.getElementById("hud");
-  const lapLabel = document.getElementById("lap-label");
-  const lapFill = document.getElementById("lap-fill");
-  const fuelFill = document.getElementById("fuel-fill");
+  const distLabel = document.getElementById("dist-label");
+  const timeLabel = document.getElementById("time-label");
   const damageFill = document.getElementById("damage-fill");
   const damagePct = document.getElementById("damage-pct");
   const speedLabel = document.getElementById("speed-label");
@@ -415,6 +411,30 @@
     return c;
   }
 
+  function makeLabelSprite(text, bg, fg) {
+    const c = document.createElement("canvas");
+    c.width = 72;
+    c.height = 40;
+    const g = c.getContext("2d");
+    g.imageSmoothingEnabled = false;
+    g.fillStyle = "#0a0612";
+    g.fillRect(0, 0, 72, 40);
+    g.fillStyle = bg;
+    g.fillRect(2, 2, 68, 26);
+    g.fillStyle = "#0a0612";
+    g.fillRect(4, 4, 64, 22);
+    g.fillStyle = fg;
+    g.font = "8px 'Press Start 2P', monospace";
+    g.textAlign = "center";
+    g.textBaseline = "middle";
+    g.fillText(text, 36, 15);
+    g.fillStyle = "#5a5a66";
+    g.fillRect(32, 30, 8, 10);
+    g.fillStyle = "#3a3a44";
+    g.fillRect(30, 38, 12, 2);
+    return c;
+  }
+
   const SPRITES = {};
 
   function buildSprites() {
@@ -515,21 +535,22 @@
 ........KKKK....KKKK........
 `);
 
-    SPRITES.fuel = blit(`
-......YYYY......
-.....YKKKKY.....
-....YKNNNNKY....
-....YKNNNNKY....
-....YKKKKKKY....
-.....YKKKKY.....
-......YKKY......
-....YYKKKKYY....
-...YEEEEEEEY....
-...YEFFFFFEY....
-...YEEEEEEEY....
-...YYKKKKKYY....
-....Y....Y......
+    SPRITES.garage = blit(`
+......KKKKKKKKKKKK......
+.....KEEEEEEEEEEEEK.....
+....KEYYYYYYYYYYYYEK....
+....KEYYYYYYYYYYYYEK....
+....KKKKKKKKKKKKKKKK....
+....KFFFFFFFFFFFFFFK....
+....KFN..........NFK....
+....KFNNNNNNNNNNNNFK....
+....KFN..........NFK....
+....KFFFFFFFFFFFFFFK....
+....KKKKKKKKKKKKKKKK....
+.....KK..........KK.....
 `);
+
+    SPRITES.serviceSign = makeLabelSprite("SERVIS", "#1cff70", "#d8ffe8");
 
     SPRITES.cactus = blit(`
 ......HH......
@@ -622,6 +643,21 @@ KKKKKKKKKKKKKKKK
   // =====================================================================
   const BG = { sky: null, mountains: null, city: null };
 
+  function paintCitySigns(cg, buildings) {
+    cg.imageSmoothingEnabled = false;
+    cg.textAlign = "center";
+    cg.textBaseline = "middle";
+    cg.font = "10px 'Press Start 2P', monospace";
+    buildings.forEach(function (b) {
+      if (!b.sign) return;
+      const top = 150 - b.h;
+      cg.fillStyle = "#071018";
+      cg.fillRect(b.x + 4, top + 6, b.w - 8, 18);
+      cg.fillStyle = b.signColor || "#3ef0ff";
+      cg.fillText("DENIZ", b.x + b.w / 2, top + 15);
+    });
+  }
+
   function buildBackgrounds() {
     BG.sky = document.createElement("canvas");
     BG.sky.width = CFG.WIDTH;
@@ -680,23 +716,23 @@ KKKKKKKKKKKKKKKK
     const buildings = [
       { x: 40, w: 50, h: 90, c: "#1a3a5c" },
       { x: 100, w: 36, h: 70, c: "#224866" },
-      { x: 150, w: 70, h: 120, c: "#16324c" },
-      { x: 230, w: 28, h: 55, c: "#2a6a8a" },
+      { x: 148, w: 78, h: 122, c: "#16324c", sign: true, signColor: "#3ef0ff" },
+      { x: 236, w: 28, h: 55, c: "#2a6a8a" },
       { x: 280, w: 90, h: 100, c: "#1a4058" },
       { x: 390, w: 44, h: 80, c: "#24506c" },
-      { x: 450, w: 60, h: 130, c: "#123040" },
-      { x: 530, w: 34, h: 64, c: "#2a6a8a" },
+      { x: 442, w: 82, h: 132, c: "#123040", sign: true, signColor: "#3ef0ff" },
+      { x: 536, w: 34, h: 64, c: "#2a6a8a" },
       { x: 580, w: 76, h: 88, c: "#1c4860" },
       { x: 670, w: 48, h: 110, c: "#16324c" },
       { x: 740, w: 100, h: 95, c: "#1a3a5c" },
       { x: 860, w: 30, h: 50, c: "#2a6a8a" },
-      { x: 910, w: 66, h: 125, c: "#102838" },
-      { x: 990, w: 40, h: 72, c: "#224866" },
+      { x: 900, w: 84, h: 128, c: "#102838", sign: true, signColor: "#3ef0ff" },
+      { x: 996, w: 40, h: 72, c: "#224866" },
       { x: 1050, w: 84, h: 108, c: "#1a4058" },
       { x: 1150, w: 28, h: 60, c: "#2a6a8a" },
       { x: 1190, w: 70, h: 92, c: "#16324c" },
       { x: 1280, w: 52, h: 78, c: "#1c4860" },
-      { x: 1350, w: 96, h: 118, c: "#123040" },
+      { x: 1344, w: 100, h: 120, c: "#123040", sign: true, signColor: "#ffd36a" },
       { x: 1460, w: 38, h: 66, c: "#224866" },
       { x: 1510, w: 80, h: 100, c: "#1a3a5c" },
       { x: 1600, w: 44, h: 84, c: "#24506c" },
@@ -707,20 +743,15 @@ KKKKKKKKKKKKKKKK
       cg.fillStyle = b.c;
       cg.fillRect(b.x, 150 - b.h, b.w, b.h);
       cg.fillStyle = idx % 3 === 0 ? "#ff7a18" : "#3ef0ff";
-      for (let wy = 150 - b.h + 8; wy < 145; wy += 10) {
+      const winTop = b.sign ? 150 - b.h + 28 : 150 - b.h + 8;
+      for (let wy = winTop; wy < 145; wy += 10) {
         for (let wx = b.x + 4; wx < b.x + b.w - 4; wx += 8) {
           if ((wx + wy + idx) % 5 === 0) continue;
           cg.fillRect(wx, wy, 4, 5);
         }
       }
     });
-    cg.fillStyle = "#3ef0ff";
-    cg.font = "14px 'Press Start 2P', monospace";
-    cg.fillText("DENIZ", 148, 40);
-    cg.fillText("DENIZ", 442, 30);
-    cg.fillText("DENIZ", 904, 34);
-    cg.fillStyle = "#ffd36a";
-    cg.fillText("DENIZ", 1340, 42);
+    paintCitySigns(cg, buildings);
 
     // lattice pylons along the city base
     cg.strokeStyle = "#6a4a9a";
@@ -768,19 +799,18 @@ KKKKKKKKKKKKKKKK
     z: 0,
     y: 0,
     speed: 0,
-    lap: 1,
-    fuel: 100,
+    odometer: 0,
     pickupTimer: 0,
     damage: 0,
     invuln: 0,
     hitTimer: 0,
+    serviceLock: false,
     finished: false,
   };
   const bgOff = { sky: 0, mountains: 0, city: 0 };
 
-  let mode = "title"; // title | playing | paused | gameover | win
+  let mode = "title"; // title | playing | paused | gameover
   let raceTime = 0;
-  let lastLapZ = 0;
 
   function lastY() {
     return segments.length === 0 ? 0 : segments[segments.length - 1].p2.world.y;
@@ -850,6 +880,7 @@ KKKKKKKKKKKKKKKK
   }
 
   function roadsideFor(segment, i) {
+    if (segment.service) return;
     const side = i % 2 === 0 ? -1 : 1;
     const far = 1.3 + (i % 5) * 0.25;
     if (i % 9 === 0) segment.sprites.push({ src: SPRITES.palm, offset: side * (1.5 + (i % 3) * 0.2) });
@@ -861,21 +892,30 @@ KKKKKKKKKKKKKKKK
     if (i % 17 === 0) segment.sprites.push({ src: SPRITES.sign, offset: side * 1.22 });
   }
 
-  function resetFuelPickups() {
-    for (let i = 0; i < segments.length; i++) {
-      segments[i].sprites = segments[i].sprites.filter(function (sp) {
-        return !sp.pickup;
-      });
-    }
-    let n = 0;
-    for (let i = 48; i < segments.length - 20; i += CFG.FUEL_SPACING) {
-      const side = n % 2 === 0 ? -1 : 1;
-      segments[i].sprites.push({
-        src: SPRITES.fuel,
-        offset: side * 1.1,
-        pickup: true,
-      });
-      n += 1;
+  function placeServiceAreas() {
+    const len = CFG.SERVICE_LENGTH;
+    const n = segments.length;
+    const gap = Math.max(80, Math.floor(n / (CFG.SERVICE_COUNT + 1)));
+    for (let s = 1; s <= CFG.SERVICE_COUNT; s++) {
+      let start = gap * s;
+      start = Math.max(40, Math.min(start, n - len - 20));
+      for (let k = 0; k < len && start + k < n; k++) {
+        const seg = segments[start + k];
+        seg.service = true;
+        seg.sprites = [];
+        if (k === 2 || k === Math.floor(len / 2)) {
+          seg.sprites.push({ src: SPRITES.serviceSign, offset: -1.12, service: true });
+          seg.sprites.push({ src: SPRITES.serviceSign, offset: 1.12, service: true });
+        }
+        if (k % 6 === 0) {
+          seg.sprites.push({ src: SPRITES.garage, offset: -1.35, service: true });
+          seg.sprites.push({ src: SPRITES.garage, offset: 1.35, service: true });
+        }
+        if (k % 5 === 2) {
+          seg.sprites.push({ src: SPRITES.lamp, offset: -1.18 });
+          seg.sprites.push({ src: SPRITES.lamp, offset: 1.18 });
+        }
+      }
     }
   }
 
@@ -902,12 +942,12 @@ KKKKKKKKKKKKKKKK
     addCurve(24, 4, 200);
     addStraight(30, 0);
 
+    placeServiceAreas();
     for (let i = 0; i < segments.length; i++) {
       if (i % 2 === 0) roadsideFor(segments[i], i);
     }
 
     trackLength = segments.length * CFG.SEGMENT_LENGTH;
-    resetFuelPickups();
   }
 
   function findSegment(z) {
@@ -975,29 +1015,34 @@ KKKKKKKKKKKKKKKK
     return n / CFG.DRAW_DISTANCE;
   }
 
-  function renderSegment(x1, y1, w1, x2, y2, w2, color) {
+  function renderSegment(x1, y1, w1, x2, y2, w2, color, service) {
     const r1 = rumbleWidth(w1, CFG.LANES);
     const r2 = rumbleWidth(w2, CFG.LANES);
     const l1 = laneMarkerWidth(w1, CFG.LANES);
     const l2 = laneMarkerWidth(w2, CFG.LANES);
 
-    ctx.fillStyle = color.grass;
+    ctx.fillStyle = service ? "#1e6a3a" : color.grass;
     ctx.fillRect(0, y2, CFG.WIDTH, y1 - y2);
 
-    polygon(x1 - w1 - r1, y1, x1 - w1, y1, x2 - w2, y2, x2 - w2 - r2, y2, color.shoulder);
-    polygon(x1 + w1 + r1, y1, x1 + w1, y1, x2 + w2, y2, x2 + w2 + r2, y2, color.shoulder);
-    polygon(x1 - w1 - r1, y1, x1 - w1 - r1 - r1, y1, x2 - w2 - r2 - r2, y2, x2 - w2 - r2, y2, color.rumble);
-    polygon(x1 + w1 + r1, y1, x1 + w1 + r1 + r1, y1, x2 + w2 + r2 + r2, y2, x2 + w2 + r2, y2, color.rumble);
-    polygon(x1 - w1, y1, x1 + w1, y1, x2 + w2, y2, x2 - w2, y2, color.road);
+    const shoulder = service ? "#3dff8a" : color.shoulder;
+    const rumble = service ? "#ffd36a" : color.rumble;
+    const road = service ? "#1c2838" : color.road;
+    const lane = service ? "#d8ffe8" : color.lane;
+
+    polygon(x1 - w1 - r1, y1, x1 - w1, y1, x2 - w2, y2, x2 - w2 - r2, y2, shoulder);
+    polygon(x1 + w1 + r1, y1, x1 + w1, y1, x2 + w2, y2, x2 + w2 + r2, y2, shoulder);
+    polygon(x1 - w1 - r1, y1, x1 - w1 - r1 - r1, y1, x2 - w2 - r2 - r2, y2, x2 - w2 - r2, y2, rumble);
+    polygon(x1 + w1 + r1, y1, x1 + w1 + r1 + r1, y1, x2 + w2 + r2 + r2, y2, x2 + w2 + r2, y2, rumble);
+    polygon(x1 - w1, y1, x1 + w1, y1, x2 + w2, y2, x2 - w2, y2, road);
 
     // Dashes only on "light" slices so they flicker past like painted lane markers
-    if (color === COLORS.light) {
+    if (service || color === COLORS.light) {
       const laneW1 = (w1 * 2) / CFG.LANES;
       const laneW2 = (w2 * 2) / CFG.LANES;
       let lx1 = x1 - w1 + laneW1;
       let lx2 = x2 - w2 + laneW2;
-      for (let lane = 1; lane < CFG.LANES; lx1 += laneW1, lx2 += laneW2, lane++) {
-        polygon(lx1 - l1 / 2, y1, lx1 + l1 / 2, y1, lx2 + l2 / 2, y2, lx2 - l2 / 2, y2, color.lane);
+      for (let laneN = 1; laneN < CFG.LANES; lx1 += laneW1, lx2 += laneW2, laneN++) {
+        polygon(lx1 - l1 / 2, y1, lx1 + l1 / 2, y1, lx2 + l2 / 2, y2, lx2 - l2 / 2, y2, lane);
       }
     }
   }
@@ -1082,7 +1127,6 @@ KKKKKKKKKKKKKKKK
 
     const speedPct = player.speed / CFG.MAX_SPEED;
     const dx = dt * 2 * speedPct; // steering step
-    const startZ = player.z;
     const playerW = CFG.PLAYER_WIDTH;
 
     player.invuln = Math.max(0, player.invuln - dt);
@@ -1117,18 +1161,7 @@ KKKKKKKKKKKKKKKK
     player.speed = limit(player.speed, 0, CFG.MAX_SPEED);
     player.x = limit(player.x, -CFG.STEER_MARGIN, CFG.STEER_MARGIN);
     player.z = increase(player.z, dt * player.speed, trackLength);
-
-    // Lap: crossed the start line going forward
-    if (startZ > player.z && player.speed > 0) {
-      player.lap += 1;
-      if (player.lap > CFG.TOTAL_LAPS) {
-        player.lap = CFG.TOTAL_LAPS;
-        player.finished = true;
-        endRace("win");
-        return;
-      }
-    }
-    lastLapZ = player.z;
+    player.odometer += dt * player.speed;
 
     updateCars(dt, findSegment(player.z + playerZCam), playerW);
 
@@ -1137,18 +1170,9 @@ KKKKKKKKKKKKKKKK
     const next = segments[(seg.index + 1) % segments.length];
     checkCollisions(seg, playerW);
     checkCollisions(next, playerW);
-    checkFuel(seg);
-    checkFuel(next);
     const prev = segments[(seg.index - 1 + segments.length) % segments.length];
-    checkFuel(prev);
-
-    // Fuel
-    player.fuel -= (CFG.FUEL_IDLE + CFG.FUEL_RACE * speedPct) * dt;
-    if (player.fuel <= 0) {
-      player.fuel = 0;
-      endRace("fuel");
-      return;
-    }
+    const inService = checkService(seg) || checkService(next) || checkService(prev);
+    if (!inService) player.serviceLock = false;
 
     // Parallax — scroll with curve * speed so the skyline leans into turns
     bgOff.sky += CFG.BG_SKY_SPEED * playerSegment.curve * speedPct * CFG.WIDTH;
@@ -1159,22 +1183,21 @@ KKKKKKKKKKKKKKKK
     updateHud();
   }
 
-  function checkFuel(segment) {
-    if (!segment) return;
-    for (let i = segment.sprites.length - 1; i >= 0; i--) {
-      const sp = segment.sprites[i];
-      if (!sp.pickup) continue;
-      if (overlap(player.x, 0.42, sp.offset, 0.5, 1)) {
-        player.fuel = Math.min(100, player.fuel + CFG.FUEL_PICKUP);
-        segment.sprites.splice(i, 1);
-        player.pickupTimer = 1.1;
-        sfxPickup();
-        if (pickupMsg) {
-          pickupMsg.textContent = "BENZİN +" + CFG.FUEL_PICKUP + "%";
-          pickupMsg.classList.remove("hidden");
-        }
+  function checkService(segment) {
+    if (!segment || !segment.service) return false;
+    if (Math.abs(player.x) > 1.08) return false;
+    if (player.serviceLock) return true;
+    player.serviceLock = true;
+    if (player.damage > 0) {
+      player.damage = 0;
+      player.pickupTimer = 1.4;
+      sfxPickup();
+      if (pickupMsg) {
+        pickupMsg.textContent = "TAMİR EDİLDİ";
+        pickupMsg.classList.remove("hidden");
       }
     }
+    return true;
   }
 
   function checkCollisions(segment, playerW) {
@@ -1187,20 +1210,21 @@ KKKKKKKKKKKKKKKK
         player.invuln = CFG.INVULN_TIME;
         player.hitTimer = 0.35;
         sfxCrash();
-        if (player.damage >= 100) endRace("damage");
+        if (player.damage >= 100) endRace();
         return;
       }
     }
   }
 
+  function formatKm() {
+    const km = (player.odometer / CFG.MAX_SPEED) * CFG.KMH_MAX / 3600;
+    return km.toFixed(1);
+  }
+
   function updateHud() {
     const kmh = Math.round((player.speed / CFG.MAX_SPEED) * CFG.KMH_MAX);
-    const lap = String(player.lap).padStart(2, "0");
-    const total = String(CFG.TOTAL_LAPS).padStart(2, "0");
-    lapLabel.textContent = "TUR " + lap + "/" + total;
-    const lapProgress = ((player.lap - 1) + player.z / trackLength) / CFG.TOTAL_LAPS;
-    lapFill.style.width = limit(lapProgress, 0, 1) * 100 + "%";
-    fuelFill.style.transform = "scaleX(" + (player.fuel / 100) + ")";
+    if (distLabel) distLabel.textContent = "KM " + formatKm();
+    if (timeLabel) timeLabel.textContent = "SÜRE " + formatTime(raceTime).slice(0, 5);
     damageFill.style.width = player.damage + "%";
     damagePct.textContent = Math.round(player.damage) + "%";
     damagePct.style.color = player.damage > 66 ? "#ff2d8a" : player.damage > 33 ? "#ffd36a" : "#3dff8a";
@@ -1261,7 +1285,8 @@ KKKKKKKKKKKKKKKK
         segment.p2.screen.x,
         segment.p2.screen.y,
         segment.p2.screen.w,
-        segment.color
+        segment.color,
+        segment.service
       );
 
       // Haze toward the vanishing point
@@ -1290,7 +1315,7 @@ KKKKKKKKKKKKKKKK
 
       for (let i = 0; i < segment.sprites.length; i++) {
         const sp = segment.sprites[i];
-        const spriteScale = segment.p1.screen.scale * (sp.pickup ? 1.55 : 1);
+        const spriteScale = segment.p1.screen.scale * (sp.service ? 1.7 : 1);
         const spriteX = segment.p1.screen.x + segment.p1.screen.w * sp.offset;
         const spriteY = segment.p1.screen.y;
         drawSprite(sp.src, spriteScale, spriteX, spriteY, sp.offset < 0 ? -1 : 0, -1, segment.clip);
@@ -1330,23 +1355,21 @@ KKKKKKKKKKKKKKKK
     player.z = 0;
     player.y = 0;
     player.speed = 0;
-    player.lap = 1;
-    player.fuel = 100;
+    player.odometer = 0;
     player.pickupTimer = 0;
     if (pickupMsg) pickupMsg.classList.add("hidden");
     player.damage = 0;
     player.invuln = 0;
     player.hitTimer = 0;
+    player.serviceLock = false;
     player.finished = false;
     raceTime = 0;
-    lastLapZ = 0;
     bgOff.sky = bgOff.mountains = bgOff.city = 0;
     keys.left = keys.right = keys.up = keys.down = false;
 
     segments.forEach((s) => {
       s.cars = [];
     });
-    resetFuelPickups();
     resetCars();
     cars.forEach((car) => {
       findSegment(car.z).cars.push(car);
@@ -1406,33 +1429,17 @@ KKKKKKKKKKKKKKKK
     return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0") + "." + String(cs).padStart(2, "0");
   }
 
-  function endRace(reason) {
-    mode = reason === "win" ? "win" : "gameover";
+  function endRace() {
+    mode = "gameover";
     hud.classList.add("hidden");
     hitFlash.classList.remove("on");
     setEngine(0, false);
-    if (reason === "win") {
-      sfxWin();
-      setOverlay(
-        '<p class="kicker">FİNİŞ ÇİZGİSİ</p><h1>KAZANDIN</h1>',
-        "SÜRE " + formatTime(raceTime) + "  ·  HASAR %" + Math.round(player.damage),
-        "TEKRAR YARIŞ"
-      );
-    } else if (reason === "fuel") {
-      sfxLose();
-      setOverlay(
-        '<p class="kicker">BENZİN BİTTİ</p><h1>OYUN BİTTİ</h1>',
-        "Depo tur " + player.lap + "/" + CFG.TOTAL_LAPS + " sırasında boşaldı.",
-        "TEKRAR"
-      );
-    } else {
-      sfxLose();
-      setOverlay(
-        '<p class="kicker">KAZA</p><h1>OYUN BİTTİ</h1>',
-        "Hasar %100'e çıktı — şasi bir darbe daha kaldıramadı.",
-        "TEKRAR"
-      );
-    }
+    sfxLose();
+    setOverlay(
+      '<p class="kicker">ARAÇ BOZULDU</p><h1>OYUN BİTTİ</h1>',
+      "SÜRE " + formatTime(raceTime) + "  ·  " + formatKm() + " km",
+      "TEKRAR"
+    );
   }
 
   function resumeFromPause() {
@@ -1447,7 +1454,7 @@ KKKKKKKKKKKKKKKK
   }
 
   function onConfirm() {
-    if (mode === "title" || mode === "gameover" || mode === "win") {
+    if (mode === "title" || mode === "gameover") {
       startPlaying();
     } else if (mode === "paused") {
       resumeFromPause();
@@ -1477,13 +1484,13 @@ KKKKKKKKKKKKKKKK
     overlayInner.innerHTML =
       '<p class="kicker">RETRO ARKAD</p>' +
       "<h1>ZAMAN<br />YARIŞI</h1>" +
-      '<p class="ver">v1.1 — ÇÖL OTOYOLU</p>' +
+      '<p class="ver">v1.2 — ÇÖL OTOYOLU</p>' +
       '<p class="blink" id="overlay-prompt">BAŞLAMAK İÇİN ENTER / TIKLA</p>' +
       '<ul class="help"><li><kbd>↑</kbd><kbd>W</kbd> GAZ</li>' +
       "<li><kbd>↓</kbd><kbd>S</kbd> FREN</li>" +
       "<li><kbd>←</kbd><kbd>A</kbd> <kbd>→</kbd><kbd>D</kbd> DİREKSİYON</li>" +
       "<li><kbd>P</kbd> DURAKLAT</li></ul>" +
-      '<p class="hint">Trafikten kaç · asfaltta kal · kenardaki benzini kap · hasar veya depo bitmeden 3 turu tamamla.</p>' +
+      '<p class="hint">Sınırsız yol · trafikten kaç · hasar %100 olunca biter · nadir serviste tamir ol.</p>' +
       '<button type="button" id="start-btn" class="arcade-btn">MOTORU ÇALIŞTIR</button>';
     document.getElementById("start-btn").addEventListener("click", onConfirm);
   }
@@ -1510,6 +1517,15 @@ KKKKKKKKKKKKKKKK
     resetRace();
     bindInput();
     restoreTitle();
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(function () {
+        buildBackgrounds();
+        const fresh = makeLabelSprite("SERVIS", "#1cff70", "#d8ffe8");
+        const g = SPRITES.serviceSign.getContext("2d");
+        g.clearRect(0, 0, SPRITES.serviceSign.width, SPRITES.serviceSign.height);
+        g.drawImage(fresh, 0, 0);
+      });
+    }
     requestAnimationFrame(loop);
   }
 

@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=3" />
+  <link rel="stylesheet" href="style.css?v=4" />
 </head>
 <body>
   <div id="stage">
@@ -22,19 +22,11 @@
     <div id="hud" class="hidden">
       <div class="hud-top">
         <div class="hud-left">
-          <div class="lap-track">
-            <div id="lap-fill"></div>
-            <span class="flag">▲</span>
-          </div>
-          <div id="lap-label">TUR 01/03</div>
+          <div id="dist-label">KM 000.0</div>
+          <div id="time-label">SÜRE 00:00</div>
         </div>
         <div class="hud-right">
           <div class="project-title">ZAMAN YARIŞI</div>
-          <div class="meter">
-            <span class="meter-icon">⛽</span>
-            <span class="meter-label">BENZİN</span>
-            <div class="bar fuel"><div id="fuel-fill"></div></div>
-          </div>
           <div class="meter">
             <span class="meter-label">HASAR</span>
             <div class="bar damage"><div id="damage-fill"></div></div>
@@ -48,7 +40,7 @@
       <div class="hud-bottom">
         <button type="button" id="pause-btn" class="hud-btn">DURDUR</button>
         <div class="speedo">
-          <div class="speedo-ver">ZAMAN YARIŞI V1.1</div>
+          <div class="speedo-ver">ZAMAN YARIŞI V1.2</div>
           <div id="speed-label">HIZ: 000 km/s</div>
           <div class="rpm"><div id="rpm-fill"></div></div>
         </div>
@@ -59,7 +51,7 @@
       <div class="overlay-inner" id="overlay-inner">
         <p class="kicker">RETRO ARKAD</p>
         <h1>ZAMAN<br />YARIŞI</h1>
-        <p class="ver">v1.1 — ÇÖL OTOYOLU</p>
+        <p class="ver">v1.2 — ÇÖL OTOYOLU</p>
         <p class="blink" id="overlay-prompt">BAŞLAMAK İÇİN ENTER / TIKLA</p>
         <ul class="help">
           <li><kbd>↑</kbd><kbd>W</kbd> GAZ</li>
@@ -67,7 +59,7 @@
           <li><kbd>←</kbd><kbd>A</kbd> <kbd>→</kbd><kbd>D</kbd> DİREKSİYON</li>
           <li><kbd>P</kbd> DURAKLAT</li>
         </ul>
-        <p class="hint">Trafikten kaç · asfaltta kal · kenardaki benzini kap · hasar veya depo bitmeden 3 turu tamamla.</p>
+        <p class="hint">Sınırsız yol · trafikten kaç · hasar %100 olunca biter · nadir serviste tamir ol.</p>
         <button type="button" id="start-btn" class="arcade-btn">MOTORU ÇALIŞTIR</button>
       </div>
     </div>
@@ -80,6 +72,6 @@
     </div>
   </div>
 
-  <script src="game.js?v=3"></script>
+  <script src="game.js?v=4"></script>
 </body>
 </html>

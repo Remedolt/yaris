@@ -142,31 +142,15 @@ body {
   text-align: right;
 }
 
-.lap-track {
-  position: relative;
-  width: min(220px, 28vw);
-  height: 10px;
-  border: 2px solid #d8ffe8;
-  background: #102018;
-}
-
-#lap-fill {
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, #1cff70, #d6ff4a);
-}
-
-.flag {
-  position: absolute;
-  right: -4px;
-  top: -10px;
-  color: #fff;
-  font-size: 10px;
-}
-
-#lap-label {
+#dist-label {
   font-size: clamp(8px, 1.1vw, 12px);
   color: #d8ffe8;
+  letter-spacing: 1px;
+}
+
+#time-label {
+  font-size: clamp(7px, 0.95vw, 10px);
+  color: var(--muted);
   letter-spacing: 1px;
 }
 
@@ -203,11 +187,6 @@ body {
 .bar > div {
   height: 100%;
   width: 100%;
-}
-
-.bar.fuel > div {
-  background: linear-gradient(90deg, #0a6, var(--green));
-  transform-origin: left center;
 }
 
 .bar.damage > div {
