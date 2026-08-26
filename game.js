@@ -893,6 +893,9 @@ KKKKKKKKKKKKKKKK
     else if (i % 3 === 0) segment.sprites.push({ src: SPRITES.bush, offset: side * (1.4 + (i % 4) * 0.15) });
     if (i % 21 === 0) segment.sprites.push({ src: SPRITES.billboard, offset: side * 1.7 });
     if (i % 17 === 0) segment.sprites.push({ src: SPRITES.sign, offset: side * 1.22 });
+    if (side > 0 && i % 10 === 1) {
+      segment.sprites.push({ src: SPRITES.palm, offset: 1.62 + (i % 4) * 0.12 });
+    }
   }
 
   function placeServiceAreas() {
@@ -917,30 +920,35 @@ KKKKKKKKKKKKKKKK
 
   function buildTrack() {
     segments.length = 0;
-    addStraight(25, 0);
-    addHill(18, 420);
-    addCurve(22, -4, 180);
-    addStraight(12, -280);
-    addCurve(18, 5, -80);
-    addHill(16, -520);
-    addCurve(26, 6, 280);
-    addStraight(14, 0);
-    addCurve(20, -6, 360);
-    addHill(22, 640);
-    addCurve(16, 3, -380);
-    addStraight(18, -160);
-    addCurve(28, -5, 120);
-    addHill(14, 480);
-    addCurve(22, 7, -220);
-    addStraight(20, 0);
-    addCurve(18, -3, 140);
-    addHill(20, -580);
-    addCurve(24, 4, 200);
-    addStraight(30, 0);
+    addStraight(10, 0);
+    addCurve(20, -6, 160);
+    addHill(14, 380);
+    addCurve(16, 7, -100);
+    addStraight(6, -180);
+    addCurve(22, -8, 90);
+    addCurve(18, 8, 220);
+    addHill(14, -460);
+    addCurve(24, 6, 260);
+    addStraight(8, 0);
+    addCurve(20, -7, 300);
+    addHill(16, 520);
+    addCurve(14, 6, -280);
+    addCurve(18, -7, 80);
+    addStraight(8, -120);
+    addCurve(26, 8, 140);
+    addHill(12, 400);
+    addCurve(20, -8, -160);
+    addCurve(16, 5, 100);
+    addStraight(8, 0);
+    addCurve(18, -6, 160);
+    addHill(16, -500);
+    addCurve(22, 7, 180);
+    addCurve(16, -5, -60);
+    addStraight(12, 0);
 
     placeServiceAreas();
     for (let i = 0; i < segments.length; i++) {
-      if (i % 2 === 0) roadsideFor(segments[i], i);
+      roadsideFor(segments[i], i);
     }
 
     trackLength = segments.length * CFG.SEGMENT_LENGTH;
@@ -1339,7 +1347,7 @@ KKKKKKKKKKKKKKKK
     ctx.save();
     ctx.translate(destX, destY);
     ctx.rotate(steer * 0.03);
-    const scale = 4.8;
+    const scale = 5.7;
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(
       spr,
