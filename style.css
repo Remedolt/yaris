@@ -359,6 +359,17 @@ h1 {
   background: var(--cyan);
 }
 
+.home-link {
+  margin: 22px 0 0;
+}
+
+.home-link a {
+  color: var(--cyan);
+  font-size: clamp(7px, 1vw, 10px);
+  letter-spacing: 1px;
+  text-decoration: underline;
+}
+
 .overlay-actions {
   display: flex;
   flex-wrap: wrap;

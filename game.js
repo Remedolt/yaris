@@ -41,7 +41,7 @@
     HIT_SPEED_FACTOR: 0.38,     // speed kept after a crash
     INVULN_TIME: 0.85,          // seconds of grace after a hit
     SERVICE_COUNT: 2,           // rare pit stops per full loop
-    SERVICE_LENGTH: 28,         // short right-lane pit
+    SERVICE_LENGTH: 21,         // 25% shorter right-lane pit
     // Sprite size = pixelWidth * scale * (WIDTH/2) * SPRITE_SCALE * ROAD_WIDTH
     // 0.3 / referencePixelWidth — keep in lockstep with the largest sprite (~24px)
     SPRITE_SCALE: 0.3 / 24,
@@ -325,7 +325,7 @@
     overlay.addEventListener("click", (e) => {
       audioUnlock();
       startMusic();
-      if (e.target.closest("button")) return;
+      if (e.target.closest("button") || e.target.closest("a")) return;
       if (mode === "paused") return;
       onConfirm();
     });
@@ -911,7 +911,7 @@ KKKKKKKKKKKKKKKK
         if (k === 2) {
           seg.sprites.push({ src: SPRITES.serviceSign, offset: 1.18, service: true });
         }
-        if (k === 18) {
+        if (k === 14) {
           seg.sprites.push({ src: SPRITES.garage, offset: 1.32, service: true });
         }
       }
@@ -1028,9 +1028,9 @@ KKKKKKKKKKKKKKKK
     ctx.fillRect(0, y2, CFG.WIDTH, y1 - y2);
 
     polygon(x1 - w1 - r1, y1, x1 - w1, y1, x2 - w2, y2, x2 - w2 - r2, y2, color.shoulder);
-    polygon(x1 + w1 + r1, y1, x1 + w1, y1, x2 + w2, y2, x2 + w2 + r2, y2, service ? "#2a8a48" : color.shoulder);
+    polygon(x1 + w1 + r1, y1, x1 + w1, y1, x2 + w2, y2, x2 + w2 + r2, y2, service ? "#3a6a3a" : color.shoulder);
     polygon(x1 - w1 - r1, y1, x1 - w1 - r1 - r1, y1, x2 - w2 - r2 - r2, y2, x2 - w2 - r2, y2, color.rumble);
-    polygon(x1 + w1 + r1, y1, x1 + w1 + r1 + r1, y1, x2 + w2 + r2 + r2, y2, x2 + w2 + r2, y2, service ? "#ffd36a" : color.rumble);
+    polygon(x1 + w1 + r1, y1, x1 + w1 + r1 + r1, y1, x2 + w2 + r2 + r2, y2, x2 + w2 + r2, y2, service ? "#c4a24a" : color.rumble);
     polygon(x1 - w1, y1, x1 + w1, y1, x2 + w2, y2, x2 - w2, y2, color.road);
 
     if (service) {
@@ -1043,7 +1043,7 @@ KKKKKKKKKKKKKKKK
         y2,
         x2 + w2 / 3,
         y2,
-        "#252e28"
+        "#272c2a"
       );
     }
 
@@ -1326,7 +1326,7 @@ KKKKKKKKKKKKKKKK
 
       for (let i = 0; i < segment.sprites.length; i++) {
         const sp = segment.sprites[i];
-        const spriteScale = segment.p1.screen.scale * (sp.service ? 1.25 : 1);
+        const spriteScale = segment.p1.screen.scale * (sp.service ? 0.94 : 1);
         const spriteX = segment.p1.screen.x + segment.p1.screen.w * sp.offset;
         const spriteY = segment.p1.screen.y;
         drawSprite(sp.src, spriteScale, spriteX, spriteY, sp.offset < 0 ? -1 : 0, -1, segment.clip);
@@ -1397,6 +1397,9 @@ KKKKKKKKKKKKKKKK
     }
   }
 
+  const HOME_LINK =
+    '<p class="home-link"><a href="https://www.oyuncum.site/" target="_top" rel="noopener noreferrer">Ana Oyun sayfasına Dön</a></p>';
+
   function setOverlay(titleHtml, sub, buttonText, variant) {
     overlay.classList.remove("hidden");
     overlayInner.innerHTML =
@@ -1410,7 +1413,8 @@ KKKKKKKKKKKKKKKK
       (variant === "pause"
         ? '<button type="button" id="fs-btn" class="arcade-btn alt">TAM EKRAN</button>'
         : "") +
-      "</div>";
+      "</div>" +
+      HOME_LINK;
     document.getElementById("start-btn").addEventListener("click", onConfirm);
     const fsBtn = document.getElementById("fs-btn");
     if (fsBtn) {
@@ -1501,7 +1505,8 @@ KKKKKKKKKKKKKKKK
       "<li><kbd>←</kbd><kbd>A</kbd> <kbd>→</kbd><kbd>D</kbd> DİREKSİYON</li>" +
       "<li><kbd>P</kbd> DURAKLAT</li></ul>" +
       '<p class="hint">Sınırsız yol · trafikten kaç · hasar %100 olunca biter · nadir serviste tamir ol.</p>' +
-      '<button type="button" id="start-btn" class="arcade-btn">MOTORU ÇALIŞTIR</button>';
+      '<button type="button" id="start-btn" class="arcade-btn">MOTORU ÇALIŞTIR</button>' +
+      HOME_LINK;
     document.getElementById("start-btn").addEventListener("click", onConfirm);
   }
 
