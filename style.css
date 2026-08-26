@@ -359,15 +359,13 @@ h1 {
   background: var(--cyan);
 }
 
-.home-link {
-  margin: 22px 0 0;
+a.arcade-btn {
+  display: inline-block;
+  text-decoration: none;
 }
 
-.home-link a {
-  color: var(--cyan);
-  font-size: clamp(7px, 1vw, 10px);
-  letter-spacing: 1px;
-  text-decoration: underline;
+.home-link {
+  margin: 22px 0 0;
 }
 
 .overlay-actions {
