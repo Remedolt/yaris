@@ -1398,7 +1398,7 @@ KKKKKKKKKKKKKKKK
   }
 
   const HOME_LINK =
-    '<p class="home-link"><a href="https://www.oyuncum.site/" target="_top" rel="noopener noreferrer">Ana Oyun sayfasına Dön</a></p>';
+    '<p class="home-link"><a href="https://www.oyuncum.site/" target="_top" rel="noopener noreferrer">ANA SAYFA</a></p>';
 
   function setOverlay(titleHtml, sub, buttonText, variant) {
     overlay.classList.remove("hidden");
