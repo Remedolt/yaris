@@ -920,31 +920,30 @@ KKKKKKKKKKKKKKKK
 
   function buildTrack() {
     segments.length = 0;
-    addStraight(10, 0);
-    addCurve(20, -6, 160);
-    addHill(14, 380);
-    addCurve(16, 7, -100);
-    addStraight(6, -180);
-    addCurve(22, -8, 90);
-    addCurve(18, 8, 220);
-    addHill(14, -460);
-    addCurve(24, 6, 260);
-    addStraight(8, 0);
-    addCurve(20, -7, 300);
-    addHill(16, 520);
-    addCurve(14, 6, -280);
-    addCurve(18, -7, 80);
-    addStraight(8, -120);
-    addCurve(26, 8, 140);
-    addHill(12, 400);
-    addCurve(20, -8, -160);
-    addCurve(16, 5, 100);
-    addStraight(8, 0);
-    addCurve(18, -6, 160);
-    addHill(16, -500);
-    addCurve(22, 7, 180);
-    addCurve(16, -5, -60);
-    addStraight(12, 0);
+    addStraight(22, 0);
+    addCurve(18, -7, 140);
+    addCurve(16, 8, -90);
+    addHill(12, 360);
+    addStraight(18, 0);
+    addCurve(22, 7, 200);
+    addCurve(18, -8, 80);
+    addStraight(16, -180);
+    addCurve(24, -7, 160);
+    addHill(14, -440);
+    addCurve(18, 8, 240);
+    addStraight(20, 0);
+    addCurve(16, -8, 260);
+    addCurve(20, 7, -180);
+    addHill(14, 480);
+    addStraight(18, -80);
+    addCurve(26, 8, 120);
+    addCurve(16, -7, 90);
+    addStraight(16, 0);
+    addCurve(22, -6, 180);
+    addHill(14, -400);
+    addCurve(18, 8, 160);
+    addCurve(14, -7, -70);
+    addStraight(24, 0);
 
     placeServiceAreas();
     for (let i = 0; i < segments.length; i++) {
@@ -1347,7 +1346,7 @@ KKKKKKKKKKKKKKKK
     ctx.save();
     ctx.translate(destX, destY);
     ctx.rotate(steer * 0.03);
-    const scale = 5.7;
+    const scale = 6.8;
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(
       spr,
