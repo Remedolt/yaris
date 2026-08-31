@@ -48,7 +48,10 @@
     BG_SKY_SPEED: 0.001,        // parallax multipliers vs curve * speed
     BG_MOUNTAIN_SPEED: 0.004,
     BG_CITY_SPEED: 0.007,
+    BG_ALPINE_SPEED: 0.005,
+    BG_COAST_SPEED: 0.006,
     KMH_MAX: 480,               // speedometer mapping at MAX_SPEED
+    BIOME_KM: 5,                // scenery section length in km
   };
 
   const COLORS = {
@@ -69,6 +72,76 @@
     },
   };
 
+  const COLORS_MOUNTAIN = {
+    light: {
+      road: "#2a3238",
+      grass: "#3d7a42",
+      rumble: "#5a9a5e",
+      lane: "#d8e8dc",
+      shoulder: "#2e5c32",
+    },
+    dark: {
+      road: "#222a30",
+      grass: "#2e6634",
+      rumble: "#4a8a50",
+      lane: "#d8e8dc",
+      shoulder: "#245028",
+    },
+  };
+
+  const COLORS_BEACH = {
+    light: {
+      road: "#3a3a42",
+      grass: "#e8c878",
+      rumble: "#48b8d8",
+      lane: "#f0f8ff",
+      shoulder: "#d4a860",
+    },
+    dark: {
+      road: "#303038",
+      grass: "#c8a858",
+      rumble: "#38a0c0",
+      lane: "#f0f8ff",
+      shoulder: "#b89048",
+    },
+  };
+
+  const BIOMES = [
+    {
+      id: "beach",
+      label: "SAHİL YOLU",
+      colors: null,
+      sky: "skyBeach",
+      layers: [{ key: "coast", y: 118, h: 185 }],
+      fog: [90, 190, 235],
+    },
+    {
+      id: "city",
+      label: "ÇÖL OTOYOLU · ŞEHİR",
+      colors: null,
+      sky: "sky",
+      layers: [
+        { key: "mountains", y: 150, h: 130 },
+        { key: "city", y: 175, h: 140 },
+      ],
+      fog: [255, 140, 70],
+    },
+    {
+      id: "mountain",
+      label: "DAĞ MANZARASI",
+      colors: null,
+      sky: "skyMountain",
+      layers: [
+        { key: "alpine", y: 95, h: 200 },
+        { key: "mountains", y: 170, h: 90 },
+      ],
+      fog: [120, 180, 210],
+    },
+  ];
+  BIOMES[0].colors = COLORS_BEACH;
+  BIOMES[1].colors = COLORS;
+  BIOMES[2].colors = COLORS_MOUNTAIN;
+
   // =====================================================================
   //  DOM
   // =====================================================================
@@ -78,6 +151,7 @@
   const overlayInner = document.getElementById("overlay-inner");
   const hud = document.getElementById("hud");
   const distLabel = document.getElementById("dist-label");
+  const zoneLabel = document.getElementById("zone-label");
   const timeLabel = document.getElementById("time-label");
   const damageFill = document.getElementById("damage-fill");
   const damagePct = document.getElementById("damage-pct");
@@ -107,6 +181,8 @@
     engineOsc2: null,
     engineFilt: null,
     engineGain: null,
+    padGain: null,
+    padOscs: null,
     musicPlaying: false,
     step: 0,
     nextT: 0,
@@ -122,8 +198,23 @@
       SFX.master.connect(SFX.ctx.destination);
 
       SFX.musicGain = SFX.ctx.createGain();
-      SFX.musicGain.gain.value = 0.22;
+      SFX.musicGain.gain.value = 0.32;
       SFX.musicGain.connect(SFX.master);
+
+      SFX.padGain = SFX.ctx.createGain();
+      SFX.padGain.gain.value = 0;
+      SFX.padGain.connect(SFX.musicGain);
+      SFX.padOscs = [110, 164.81, 220, 329.63].map(function (freq) {
+        const o = SFX.ctx.createOscillator();
+        const g = SFX.ctx.createGain();
+        o.type = "sine";
+        o.frequency.value = freq;
+        g.gain.value = 0.06;
+        o.connect(g);
+        g.connect(SFX.padGain);
+        o.start();
+        return o;
+      });
 
       SFX.sfxGain = SFX.ctx.createGain();
       SFX.sfxGain.gain.value = 0.55;
@@ -195,22 +286,30 @@
 
   const BASS = [55.0, 55.0, 82.41, 73.42, 55.0, 65.41, 73.42, 82.41];
   const LEAD = [220, 246.94, 261.63, 329.63, 392, 329.63, 261.63, 246.94, 220, 196, 174.61, 196, 220, 261.63, 246.94, 196];
+  const PAD = [110, 130.81, 164.81, 196, 98, 123.47, 146.83, 174.61];
 
   function startMusic() {
     audioUnlock();
     if (!SFX.ctx) return;
     SFX.musicPlaying = true;
     SFX.nextT = Math.max(SFX.nextT, SFX.ctx.currentTime + 0.04);
+    const t = SFX.ctx.currentTime;
+    if (SFX.padGain) SFX.padGain.gain.setTargetAtTime(0.9, t, 0.35);
+    if (SFX.musicGain) SFX.musicGain.gain.setTargetAtTime(0.32, t, 0.2);
   }
 
   function tickMusic() {
     if (!SFX.ctx || !SFX.musicPlaying) return;
     const now = SFX.ctx.currentTime;
-    while (SFX.nextT < now + 0.14) {
+    while (SFX.nextT < now + 0.16) {
       const i = SFX.step % 16;
-      tone(SFX.musicGain, "triangle", BASS[i % BASS.length], 0.16, 0.09, SFX.nextT);
-      if (i % 2 === 0) tone(SFX.musicGain, "square", LEAD[i], 0.11, 0.032, SFX.nextT);
-      if (i % 8 === 0) tone(SFX.musicGain, "sawtooth", BASS[i % BASS.length] * 2, 0.28, 0.018, SFX.nextT);
+      tone(SFX.musicGain, "triangle", BASS[i % BASS.length], 0.2, 0.11, SFX.nextT);
+      if (i % 2 === 0) tone(SFX.musicGain, "square", LEAD[i], 0.15, 0.05, SFX.nextT);
+      if (i % 4 === 0) {
+        tone(SFX.musicGain, "sine", PAD[i % PAD.length], 0.5, 0.035, SFX.nextT);
+        tone(SFX.musicGain, "sine", 55, 0.1, 0.14, SFX.nextT);
+      }
+      if (i % 8 === 0) tone(SFX.musicGain, "sawtooth", BASS[i % BASS.length] * 2, 0.22, 0.028, SFX.nextT);
       SFX.step++;
       SFX.nextT += 0.17;
     }
@@ -233,7 +332,8 @@
   function setPausedAudio(paused) {
     if (!SFX.ctx) return;
     const t = SFX.ctx.currentTime;
-    if (SFX.musicGain) SFX.musicGain.gain.setTargetAtTime(paused ? 0.04 : 0.22, t, 0.08);
+    if (SFX.musicGain) SFX.musicGain.gain.setTargetAtTime(paused ? 0.06 : 0.32, t, 0.08);
+    if (SFX.padGain) SFX.padGain.gain.setTargetAtTime(paused ? 0.15 : 0.9, t, 0.12);
     if (paused) setEngine(0, false);
   }
 
@@ -641,7 +741,7 @@ KKKKKKKKKKKKKKKK
   // =====================================================================
   //  BACKGROUNDS (sunset, mountains, city) — wide bitmaps for wrap-scroll
   // =====================================================================
-  const BG = { sky: null, mountains: null, city: null };
+  const BG = { sky: null, skyMountain: null, skyBeach: null, mountains: null, alpine: null, city: null, coast: null };
 
   function paintCitySigns(cg, buildings) {
     cg.imageSmoothingEnabled = false;
@@ -691,6 +791,27 @@ KKKKKKKKKKKKKKKK
     sg.fill();
     sg.globalAlpha = 1;
 
+    BG.skyMountain = document.createElement("canvas");
+    BG.skyMountain.width = CFG.WIDTH;
+    BG.skyMountain.height = 280;
+    const smg = BG.skyMountain.getContext("2d");
+    const mgrad = smg.createLinearGradient(0, 0, 0, 280);
+    mgrad.addColorStop(0, "#0a1830");
+    mgrad.addColorStop(0.35, "#1a3a5c");
+    mgrad.addColorStop(0.62, "#4a7a9a");
+    mgrad.addColorStop(0.82, "#8ab8c8");
+    mgrad.addColorStop(1, "#c8e0e8");
+    smg.fillStyle = mgrad;
+    smg.fillRect(0, 0, CFG.WIDTH, 280);
+    smg.fillStyle = "rgba(255,255,255,0.35)";
+    for (let i = 0; i < 18; i++) {
+      const x = (i * 137) % CFG.WIDTH;
+      const y = 24 + (i * 41) % 70;
+      smg.beginPath();
+      smg.ellipse(x, y, 28 + (i % 3) * 12, 10 + (i % 2) * 4, 0, 0, Math.PI * 2);
+      smg.fill();
+    }
+
     BG.mountains = document.createElement("canvas");
     BG.mountains.width = 1920;
     BG.mountains.height = 140;
@@ -710,6 +831,55 @@ KKKKKKKKKKKKKKKK
     range("#8a3a18", 40, 110);
     range("#c45e22", 220, 78);
     range("#e07a2f", 480, 48);
+
+    BG.alpine = document.createElement("canvas");
+    BG.alpine.width = 1920;
+    BG.alpine.height = 220;
+    const ag = BG.alpine.getContext("2d");
+    function peak(x0, w, h, body, snow) {
+      ag.fillStyle = body;
+      ag.beginPath();
+      ag.moveTo(x0, 220);
+      ag.lineTo(x0 + w * 0.5, 220 - h);
+      ag.lineTo(x0 + w, 220);
+      ag.closePath();
+      ag.fill();
+      ag.fillStyle = snow;
+      ag.beginPath();
+      ag.moveTo(x0 + w * 0.34, 220 - h * 0.58);
+      ag.lineTo(x0 + w * 0.5, 220 - h);
+      ag.lineTo(x0 + w * 0.66, 220 - h * 0.58);
+      ag.lineTo(x0 + w * 0.58, 220 - h * 0.52);
+      ag.lineTo(x0 + w * 0.42, 220 - h * 0.52);
+      ag.closePath();
+      ag.fill();
+    }
+    ag.fillStyle = "#1a4a2a";
+    ag.fillRect(0, 190, 1920, 30);
+    for (let px = 0; px < 1920; px += 48) {
+      const ph = 18 + (px % 5) * 6;
+      ag.fillStyle = "#245832";
+      ag.beginPath();
+      ag.moveTo(px + 8, 220);
+      ag.lineTo(px + 16, 220 - ph);
+      ag.lineTo(px + 24, 220);
+      ag.closePath();
+      ag.fill();
+    }
+    const peaks = [
+      { x: -40, w: 280, h: 150, c: "#3a4a58", s: "#e8f0f8" },
+      { x: 180, w: 360, h: 190, c: "#2e3e4e", s: "#f0f6ff" },
+      { x: 500, w: 320, h: 165, c: "#3a4a58", s: "#e8f0f8" },
+      { x: 780, w: 420, h: 205, c: "#283848", s: "#ffffff" },
+      { x: 1140, w: 300, h: 158, c: "#3a4a58", s: "#e8f0f8" },
+      { x: 1400, w: 380, h: 182, c: "#2e3e4e", s: "#f0f6ff" },
+      { x: 1720, w: 260, h: 140, c: "#3a4a58", s: "#e8f0f8" },
+    ];
+    peaks.forEach(function (p) {
+      peak(p.x, p.w, p.h, p.c, p.s);
+    });
+    ag.fillStyle = "rgba(120,180,220,0.18)";
+    ag.fillRect(0, 0, 1920, 220);
 
     BG.city = document.createElement("canvas");
     BG.city.width = 1920;
@@ -768,6 +938,71 @@ KKKKKKKKKKKKKKKK
       cg.lineTo(x + 24, 130);
       cg.stroke();
     }
+
+    BG.skyBeach = document.createElement("canvas");
+    BG.skyBeach.width = CFG.WIDTH;
+    BG.skyBeach.height = 280;
+    const bgSky = BG.skyBeach.getContext("2d");
+    const bgrad = bgSky.createLinearGradient(0, 0, 0, 280);
+    bgrad.addColorStop(0, "#1a5088");
+    bgrad.addColorStop(0.45, "#3a8ac8");
+    bgrad.addColorStop(0.72, "#68b8e8");
+    bgrad.addColorStop(1, "#a8d8f8");
+    bgSky.fillStyle = bgrad;
+    bgSky.fillRect(0, 0, CFG.WIDTH, 280);
+    bgSky.fillStyle = "#fff8d0";
+    bgSky.beginPath();
+    bgSky.arc(CFG.WIDTH * 0.72, 110, 32, 0, Math.PI * 2);
+    bgSky.fill();
+    bgSky.fillStyle = "rgba(255,255,255,0.5)";
+    for (let i = 0; i < 8; i++) {
+      const cx = (i * 210 + 60) % CFG.WIDTH;
+      const cy = 40 + (i % 3) * 22;
+      bgSky.beginPath();
+      bgSky.ellipse(cx, cy, 36 + (i % 2) * 14, 12, 0, 0, Math.PI * 2);
+      bgSky.fill();
+    }
+
+    BG.coast = document.createElement("canvas");
+    BG.coast.width = 1920;
+    BG.coast.height = 200;
+    const sea = BG.coast.getContext("2d");
+    const seaGrad = sea.createLinearGradient(0, 0, 0, 200);
+    seaGrad.addColorStop(0, "#2878b0");
+    seaGrad.addColorStop(0.42, "#38a0d0");
+    seaGrad.addColorStop(0.62, "#48b8e0");
+    seaGrad.addColorStop(0.72, "#68c8e8");
+    seaGrad.addColorStop(0.82, "#e8c878");
+    seaGrad.addColorStop(1, "#d8a858");
+    sea.fillStyle = seaGrad;
+    sea.fillRect(0, 0, 1920, 200);
+    sea.fillStyle = "rgba(255,255,255,0.22)";
+    for (let wx = 0; wx < 1920; wx += 48) {
+      const wy = 58 + Math.sin(wx * 0.04) * 4;
+      sea.fillRect(wx, wy, 28, 3);
+      sea.fillRect(wx + 14, wy + 18, 22, 2);
+    }
+    sea.fillStyle = "#c89848";
+    for (let sx = 0; sx < 1920; sx += 18) {
+      const sh = 6 + (sx % 4) * 3;
+      sea.fillRect(sx, 200 - sh, 10, sh);
+    }
+    for (let px = 80; px < 1920; px += 220) {
+      const ph = 52 + (px % 3) * 18;
+      sea.fillStyle = "#1a6838";
+      sea.beginPath();
+      sea.moveTo(px, 200);
+      sea.lineTo(px + 10, 200 - ph);
+      sea.lineTo(px + 20, 200);
+      sea.closePath();
+      sea.fill();
+      sea.fillStyle = "#2a8848";
+      sea.beginPath();
+      sea.arc(px + 10, 200 - ph - 4, 14, 0, Math.PI * 2);
+      sea.fill();
+    }
+    sea.fillStyle = "rgba(255,255,255,0.12)";
+    sea.fillRect(0, 70, 1920, 28);
   }
 
   function drawParallax(img, offset, destY, destH) {
@@ -810,10 +1045,107 @@ KKKKKKKKKKKKKKKK
     serviceLock: false,
     finished: false,
   };
-  const bgOff = { sky: 0, mountains: 0, city: 0 };
+  const bgOff = { sky: 0, mountains: 0, city: 0, alpine: 0, coast: 0 };
 
   let mode = "title"; // title | playing | paused | gameover
   let raceTime = 0;
+  let lastBiome = -1;
+
+  function getKm() {
+    return (player.odometer / CFG.MAX_SPEED) * CFG.KMH_MAX / 3600;
+  }
+
+  function getBiomeIndex() {
+    return Math.floor(getKm() / CFG.BIOME_KM) % BIOMES.length;
+  }
+
+  function getBiomeWeights() {
+    const weights = new Array(BIOMES.length).fill(0);
+    weights[getBiomeIndex()] = 1;
+    return weights;
+  }
+
+  function rgbToHex(rgb) {
+    const r = Math.max(0, Math.min(255, Math.round(rgb.r)));
+    const g = Math.max(0, Math.min(255, Math.round(rgb.g)));
+    const b = Math.max(0, Math.min(255, Math.round(rgb.b)));
+    return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+  }
+
+  function segmentColorForWeights(segmentColor, weights) {
+    const isLight = segmentColor === COLORS.light;
+    const keys = ["road", "grass", "rumble", "lane", "shoulder"];
+    const acc = { road: { r: 0, g: 0, b: 0 }, grass: { r: 0, g: 0, b: 0 }, rumble: { r: 0, g: 0, b: 0 }, lane: { r: 0, g: 0, b: 0 }, shoulder: { r: 0, g: 0, b: 0 } };
+
+    for (let i = 0; i < BIOMES.length; i++) {
+      if (weights[i] <= 0) continue;
+      const set = isLight ? BIOMES[i].colors.light : BIOMES[i].colors.dark;
+      const w = weights[i];
+      keys.forEach(function (k) {
+        const c = hexToRgb(set[k]);
+        acc[k].r += c.r * w;
+        acc[k].g += c.g * w;
+        acc[k].b += c.b * w;
+      });
+    }
+
+    return {
+      road: rgbToHex(acc.road),
+      grass: rgbToHex(acc.grass),
+      rumble: rgbToHex(acc.rumble),
+      lane: rgbToHex(acc.lane),
+      shoulder: rgbToHex(acc.shoulder),
+    };
+  }
+
+  function fogColorForWeights(weights) {
+    let r = 0;
+    let g = 0;
+    let b = 0;
+    for (let i = 0; i < BIOMES.length; i++) {
+      if (weights[i] <= 0) continue;
+      r += BIOMES[i].fog[0] * weights[i];
+      g += BIOMES[i].fog[1] * weights[i];
+      b += BIOMES[i].fog[2] * weights[i];
+    }
+    return [Math.round(r), Math.round(g), Math.round(b)];
+  }
+
+  function drawBiomeBackgrounds(weights, hillOffset) {
+    for (let i = 0; i < BIOMES.length; i++) {
+      if (weights[i] <= 0.002) continue;
+      ctx.globalAlpha = weights[i];
+      ctx.drawImage(BG[BIOMES[i].sky], 0, -20 - hillOffset, CFG.WIDTH, 300);
+    }
+    ctx.globalAlpha = 1;
+
+    for (let i = 0; i < BIOMES.length; i++) {
+      if (weights[i] <= 0.002) continue;
+      ctx.globalAlpha = weights[i];
+      BIOMES[i].layers.forEach(function (layer) {
+        drawParallax(BG[layer.key], bgOff[layer.key], layer.y - hillOffset, layer.h);
+      });
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function hexToRgb(hex) {
+    const n = parseInt(hex.slice(1), 16);
+    return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+  }
+
+  function checkBiomeChange() {
+    const biome = getBiomeIndex();
+    if (biome === lastBiome) return;
+    const prev = lastBiome;
+    lastBiome = biome;
+    if (mode !== "playing" || prev < 0) return;
+    player.pickupTimer = 2.6;
+    if (pickupMsg) {
+      pickupMsg.textContent = BIOMES[biome].label;
+      pickupMsg.classList.remove("hidden");
+    }
+  }
 
   function lastY() {
     return segments.length === 0 ? 0 : segments[segments.length - 1].p2.world.y;
@@ -1018,7 +1350,7 @@ KKKKKKKKKKKKKKKK
     return n / CFG.DRAW_DISTANCE;
   }
 
-  function renderSegment(x1, y1, w1, x2, y2, w2, color, service) {
+  function renderSegment(x1, y1, w1, x2, y2, w2, color, service, isLightStripe) {
     const r1 = rumbleWidth(w1, CFG.LANES);
     const r2 = rumbleWidth(w2, CFG.LANES);
     const l1 = laneMarkerWidth(w1, CFG.LANES);
@@ -1047,7 +1379,7 @@ KKKKKKKKKKKKKKKK
       );
     }
 
-    if (color === COLORS.light) {
+    if (isLightStripe) {
       const laneW1 = (w1 * 2) / CFG.LANES;
       const laneW2 = (w2 * 2) / CFG.LANES;
       let lx1 = x1 - w1 + laneW1;
@@ -1189,7 +1521,10 @@ KKKKKKKKKKKKKKKK
     bgOff.sky += CFG.BG_SKY_SPEED * playerSegment.curve * speedPct * CFG.WIDTH;
     bgOff.mountains += CFG.BG_MOUNTAIN_SPEED * playerSegment.curve * speedPct * CFG.WIDTH;
     bgOff.city += CFG.BG_CITY_SPEED * playerSegment.curve * speedPct * CFG.WIDTH;
+    bgOff.alpine += CFG.BG_ALPINE_SPEED * playerSegment.curve * speedPct * CFG.WIDTH;
+    bgOff.coast += CFG.BG_COAST_SPEED * playerSegment.curve * speedPct * CFG.WIDTH;
 
+    checkBiomeChange();
     raceTime += dt;
     updateHud();
   }
@@ -1228,13 +1563,13 @@ KKKKKKKKKKKKKKKK
   }
 
   function formatKm() {
-    const km = (player.odometer / CFG.MAX_SPEED) * CFG.KMH_MAX / 3600;
-    return km.toFixed(1);
+    return getKm().toFixed(1);
   }
 
   function updateHud() {
     const kmh = Math.round((player.speed / CFG.MAX_SPEED) * CFG.KMH_MAX);
     if (distLabel) distLabel.textContent = "KM " + formatKm();
+    if (zoneLabel) zoneLabel.textContent = BIOMES[getBiomeIndex()].label;
     if (timeLabel) timeLabel.textContent = "SÜRE " + formatTime(raceTime).slice(0, 5);
     damageFill.style.width = player.damage + "%";
     damagePct.textContent = Math.round(player.damage) + "%";
@@ -1259,9 +1594,8 @@ KKKKKKKKKKKKKKKK
 
     // Sky + parallax layers sit on the horizon; hills shift destY a little
     const hillOffset = Math.round((playerY / CFG.CAMERA_HEIGHT) * 40);
-    ctx.drawImage(BG.sky, 0, -20 - hillOffset, CFG.WIDTH, 300);
-    drawParallax(BG.mountains, bgOff.mountains, 150 - hillOffset, 130);
-    drawParallax(BG.city, bgOff.city, 175 - hillOffset, 140);
+    const weights = getBiomeWeights();
+    drawBiomeBackgrounds(weights, hillOffset);
 
     let maxy = CFG.HEIGHT;
     let x = 0;
@@ -1296,14 +1630,16 @@ KKKKKKKKKKKKKKKK
         segment.p2.screen.x,
         segment.p2.screen.y,
         segment.p2.screen.w,
-        segment.color,
-        segment.service
+        segmentColorForWeights(segment.color, weights),
+        segment.service,
+        segment.color === COLORS.light
       );
 
       // Haze toward the vanishing point
       const a = 1 - segment.fog;
       if (a > 0.02) {
-        ctx.fillStyle = "rgba(255, 140, 70, " + a * 0.22 + ")";
+        const fog = fogColorForWeights(weights);
+        ctx.fillStyle = "rgba(" + fog[0] + ", " + fog[1] + ", " + fog[2] + ", " + a * 0.22 + ")";
         ctx.fillRect(0, segment.p2.screen.y, CFG.WIDTH, segment.p1.screen.y - segment.p2.screen.y);
       }
 
@@ -1375,7 +1711,8 @@ KKKKKKKKKKKKKKKK
     player.serviceLock = false;
     player.finished = false;
     raceTime = 0;
-    bgOff.sky = bgOff.mountains = bgOff.city = 0;
+    lastBiome = -1;
+    bgOff.sky = bgOff.mountains = bgOff.city = bgOff.alpine = bgOff.coast = 0;
     keys.left = keys.right = keys.up = keys.down = false;
 
     segments.forEach((s) => {
@@ -1498,7 +1835,7 @@ KKKKKKKKKKKKKKKK
     overlay.classList.remove("hidden");
     overlayInner.innerHTML =
       "<h1>ZAMAN<br />YARIŞI</h1>" +
-      '<p class="ver">v1.2 — ÇÖL OTOYOLU</p>' +
+      '<p class="ver">v1.5 — SAHİL · ŞEHİR · DAĞ (5 KM)</p>' +
       '<p class="blink" id="overlay-prompt">BAŞLAMAK İÇİN ENTER / TIKLA</p>' +
       '<ul class="help"><li><kbd>↑</kbd><kbd>W</kbd> GAZ</li>' +
       "<li><kbd>↓</kbd><kbd>S</kbd> FREN</li>" +
@@ -1531,6 +1868,14 @@ KKKKKKKKKKKKKKKK
     buildTrack();
     resetRace();
     bindInput();
+    window.addEventListener(
+      "pointerdown",
+      function () {
+        audioUnlock();
+        startMusic();
+      },
+      { once: true }
+    );
     restoreTitle();
     if (document.fonts && document.fonts.ready) {
       document.fonts.ready.then(function () {

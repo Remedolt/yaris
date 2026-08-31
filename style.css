@@ -148,6 +148,12 @@ body {
   letter-spacing: 1px;
 }
 
+#zone-label {
+  font-size: clamp(6px, 0.85vw, 9px);
+  color: var(--cyan);
+  letter-spacing: 0.5px;
+}
+
 #time-label {
   font-size: clamp(7px, 0.95vw, 10px);
   color: var(--muted);
