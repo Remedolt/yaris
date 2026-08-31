@@ -222,11 +222,40 @@ body {
 }
 
 .speedo {
-  text-align: right;
-  background: linear-gradient(180deg, rgba(12, 8, 24, 0.2), rgba(12, 8, 24, 0.72));
-  border: 2px solid #3a2a55;
-  padding: 8px 10px 10px;
+  text-align: center;
+  min-width: 148px;
+  background: linear-gradient(180deg, rgba(12, 8, 24, 0.2), rgba(12, 8, 24, 0.82));
+  border: 2px solid #3ef0ff;
+  border-radius: 10px;
+  padding: 10px 12px 12px;
+  box-shadow: 0 0 16px rgba(62, 240, 255, 0.18);
   transform: perspective(240px) rotateY(-8deg);
+}
+
+#gear-label {
+  display: inline-block;
+  margin: 0 auto 10px;
+  padding: 5px 10px;
+  border: 2px solid #ff2d8a;
+  border-radius: 8px;
+  color: #ff2d8a;
+  font-size: clamp(7px, 0.95vw, 10px);
+  letter-spacing: 1px;
+}
+
+#speed-label {
+  font-size: clamp(18px, 2.8vw, 30px);
+  color: #f4f8ff;
+  letter-spacing: 2px;
+  line-height: 1;
+  text-shadow: 0 0 12px rgba(62, 240, 255, 0.45);
+}
+
+.speedo-unit {
+  margin-top: 6px;
+  font-size: clamp(7px, 0.9vw, 9px);
+  color: var(--cyan);
+  letter-spacing: 2px;
 }
 
 .speedo-ver {
@@ -235,10 +264,27 @@ body {
   margin-bottom: 8px;
 }
 
-#speed-label {
-  font-size: clamp(10px, 1.6vw, 16px);
-  color: #d8ffe8;
-  letter-spacing: 1px;
+.nitro-hint {
+  margin-top: 10px;
+  font-size: clamp(5px, 0.72vw, 7px);
+  color: var(--cyan);
+  letter-spacing: 0.5px;
+  line-height: 1.5;
+}
+
+.nitro-bar {
+  margin-top: 6px;
+  height: 5px;
+  background: #22182f;
+  border: 1px solid #4a3a66;
+  overflow: hidden;
+}
+
+#nitro-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #3ef0ff, #7af8ff);
+  box-shadow: 0 0 8px rgba(62, 240, 255, 0.55);
 }
 
 .rpm {

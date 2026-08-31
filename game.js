@@ -44,7 +44,7 @@
     SERVICE_LENGTH: 21,         // 25% shorter right-lane pit
     // Sprite size = pixelWidth * scale * (WIDTH/2) * SPRITE_SCALE * ROAD_WIDTH
     // 0.3 / referencePixelWidth — keep in lockstep with the largest sprite (~24px)
-    SPRITE_SCALE: 0.3 / 24,
+    SPRITE_SCALE: 0.3 / 34,
     BG_SKY_SPEED: 0.001,        // parallax multipliers vs curve * speed
     BG_MOUNTAIN_SPEED: 0.004,
     BG_CITY_SPEED: 0.007,
@@ -52,6 +52,14 @@
     BG_COAST_SPEED: 0.006,
     KMH_MAX: 480,               // speedometer mapping at MAX_SPEED
     BIOME_KM: 5,                // scenery section length in km
+    GEAR_MAX: 5,
+    GEAR_TOPS: [0.22, 0.42, 0.62, 0.82, 1.0],
+    SHIFT_UP_RPM: 0.9,
+    SHIFT_DOWN_RPM: 0.32,
+    NITRO_MAX: 100,
+    NITRO_BURN: 38,
+    NITRO_RECHARGE: 10,
+    NITRO_ACCEL: 4800,
   };
 
   const COLORS = {
@@ -157,6 +165,8 @@
   const damagePct = document.getElementById("damage-pct");
   const speedLabel = document.getElementById("speed-label");
   const rpmFill = document.getElementById("rpm-fill");
+  const gearLabel = document.getElementById("gear-label");
+  const nitroFill = document.getElementById("nitro-fill");
   const pickupMsg = document.getElementById("pickup-msg");
   const stage = document.getElementById("stage");
   const pauseBtn = document.getElementById("pause-btn");
@@ -374,10 +384,21 @@
     tone(SFX.sfxGain, "triangle", 110, 0.5, 0.1, t + 0.12, 55);
   }
 
+  function sfxShift() {
+    if (!SFX.ctx) return;
+    tone(SFX.sfxGain, "square", 180, 0.06, 0.07, SFX.ctx.currentTime);
+    tone(SFX.sfxGain, "square", 260, 0.05, 0.05, SFX.ctx.currentTime + 0.05);
+  }
+
+  function sfxNitro() {
+    if (!SFX.ctx) return;
+    noiseBurst(0.05, 0.06, 420, SFX.ctx.currentTime);
+  }
+
   // =====================================================================
   //  INPUT
   // =====================================================================
-  const keys = { left: false, right: false, up: false, down: false };
+  const keys = { left: false, right: false, up: false, down: false, nitro: false };
 
   const KEYMAP = {
     ArrowLeft: "left",
@@ -410,6 +431,10 @@
       if (e.key === "p" || e.key === "P") {
         togglePause();
       }
+      if (e.key === " " || e.key === "Shift") {
+        keys.nitro = true;
+        e.preventDefault();
+      }
       if (e.key === "Escape") {
         if (mode === "playing") togglePause();
       }
@@ -418,6 +443,10 @@
       const action = KEYMAP[e.key];
       if (action) {
         keys[action] = false;
+        e.preventDefault();
+      }
+      if (e.key === " " || e.key === "Shift") {
+        keys.nitro = false;
         e.preventDefault();
       }
     });
@@ -484,7 +513,141 @@
     V: [180, 70, 255],
     X: [30, 40, 70],
     E: [30, 220, 80],
+    Q: [18, 142, 138],
+    I: [36, 210, 200],
+    j: [10, 82, 92],
+    p: [168, 38, 108],
+    u: [18, 58, 168],
+    v: [108, 32, 188],
+    r: [190, 40, 72],
   };
+
+  function rgb(c) {
+    return "rgb(" + c[0] + "," + c[1] + "," + c[2] + ")";
+  }
+
+  function makeRearCarSprite(opts) {
+    const w = 34;
+    const h = 22;
+    const c = document.createElement("canvas");
+    c.width = w;
+    c.height = h;
+    const g = c.getContext("2d");
+    g.imageSmoothingEnabled = false;
+    const body = opts.body;
+    const bodyHi = opts.bodyHi || body;
+    const bodyLo = opts.bodyLo || body;
+    const glass = opts.glass || [18, 34, 52];
+    const tail = opts.tail || [255, 48, 72];
+    const tire = opts.tire || [24, 26, 34];
+    const rim = opts.rim || [110, 112, 124];
+    const black = [8, 10, 14];
+
+    g.fillStyle = rgb(tire);
+    g.fillRect(1, 14, 8, 8);
+    g.fillRect(w - 9, 14, 8, 8);
+    g.fillStyle = rgb(rim);
+    g.fillRect(3, 16, 4, 4);
+    g.fillRect(w - 7, 16, 4, 4);
+
+    g.fillStyle = rgb(bodyLo);
+    g.fillRect(5, 11, w - 10, 6);
+    g.fillStyle = rgb(body);
+    g.fillRect(7, 7, w - 14, 5);
+    g.fillRect(9, 4, w - 18, 4);
+
+    g.fillStyle = rgb(glass);
+    g.fillRect(11, 5, w - 22, 3);
+
+    g.fillStyle = rgb(bodyHi);
+    g.fillRect(9, 4, w - 18, 1);
+
+    g.fillStyle = rgb(black);
+    g.fillRect(8, 1, w - 16, 2);
+    g.fillRect(10, 3, 2, 2);
+    g.fillRect(w - 12, 3, 2, 2);
+
+    g.fillStyle = rgb(tail);
+    g.fillRect(8, 9, 4, 2);
+    g.fillRect(w - 12, 9, 4, 2);
+    g.fillStyle = rgb([255, 210, 80]);
+    g.fillRect(9, 9, 2, 2);
+    g.fillRect(w - 11, 9, 2, 2);
+
+    g.fillStyle = rgb([210, 214, 224]);
+    g.fillRect(13, 12, 8, 2);
+
+    g.fillStyle = rgb(black);
+    g.fillRect(14, 18, 2, 2);
+    g.fillRect(18, 18, 2, 2);
+
+    return c;
+  }
+
+  function makeTruckSprite() {
+    const w = 44;
+    const h = 24;
+    const c = document.createElement("canvas");
+    c.width = w;
+    c.height = h;
+    const g = c.getContext("2d");
+    g.imageSmoothingEnabled = false;
+    const tire = [24, 26, 34];
+    const black = [8, 10, 14];
+
+    g.fillStyle = rgb(tire);
+    g.fillRect(2, 16, 8, 8);
+    g.fillRect(12, 16, 8, 8);
+    g.fillRect(w - 18, 16, 8, 8);
+    g.fillRect(w - 8, 16, 8, 8);
+
+    g.fillStyle = rgb([36, 42, 58]);
+    g.fillRect(8, 8, w - 16, 10);
+    g.fillStyle = rgb([255, 196, 48]);
+    g.fillRect(4, 6, 14, 12);
+    g.fillStyle = rgb([18, 30, 48]);
+    g.fillRect(6, 8, 10, 5);
+
+    g.fillStyle = rgb([255, 48, 72]);
+    g.fillRect(5, 12, 3, 2);
+    g.fillRect(14, 12, 3, 2);
+
+    g.fillStyle = rgb(black);
+    g.fillRect(20, 4, w - 24, 2);
+
+    return c;
+  }
+
+  function makeTankerSprite() {
+    const w = 40;
+    const h = 26;
+    const c = document.createElement("canvas");
+    c.width = w;
+    c.height = h;
+    const g = c.getContext("2d");
+    g.imageSmoothingEnabled = false;
+
+    g.fillStyle = rgb([24, 26, 34]);
+    g.fillRect(2, 17, 8, 8);
+    g.fillRect(w - 10, 17, 8, 8);
+
+    g.fillStyle = rgb([210, 214, 224]);
+    g.fillRect(6, 7, w - 12, 12);
+    g.fillStyle = rgb([170, 176, 190]);
+    g.fillRect(8, 9, w - 16, 8);
+    g.fillStyle = rgb([30, 210, 90]);
+    g.fillRect(10, 11, w - 20, 4);
+
+    g.fillStyle = rgb([255, 48, 72]);
+    g.fillRect(7, 14, 3, 2);
+    g.fillRect(w - 10, 14, 3, 2);
+
+    g.fillStyle = rgb([8, 10, 14]);
+    g.fillRect(14, 20, 2, 2);
+    g.fillRect(18, 20, 2, 2);
+
+    return c;
+  }
 
   function blit(art) {
     const rows = art.trim().split("\n").map((r) => r.replace(/\r/g, ""));
@@ -538,102 +701,44 @@
   const SPRITES = {};
 
   function buildSprites() {
-    SPRITES.player = blit(`
-..........KKKKKKKKKKKK..........
-.........KBBBBBBBBBBBBK.........
-........KBBWWWWWWWWWWBBK........
-........KBBWWWWWWWWWWBBK........
-.......KBBBBBBBBBBBBBBBBK.......
-.......KBBBBBBBBBBBBBBBBK.......
-.......KBBBBKKKKKKKKBBBBK.......
-......KBBBBKRRRRRRRRKBBBBK......
-......KBBBBBFFFFFFFFBBBBBK......
-......KBBKGGGGK..KGGGGKBBK......
-......KKKGGGGK....KGGGGKKK......
-.........KKKK......KKKK.........
-`);
+    SPRITES.player = makeRearCarSprite({
+      body: [22, 138, 132],
+      bodyHi: [42, 198, 188],
+      bodyLo: [14, 96, 92],
+      glass: [12, 36, 54],
+    });
 
-    SPRITES.playerIdle = blit(`
-..........KKKKKKKKKKKK..........
-.........KBBBBBBBBBBBBK.........
-........KBBWWWWWWWWWWBBK........
-........KBBWWWWWWWWWWBBK........
-.......KBBBBBBBBBBBBBBBBK.......
-.......KBBBBBBBBBBBBBBBBK.......
-.......KBBBBKKKKKKKKBBBBK.......
-......KBBBBKRRRRRRRRKBBBBK......
-......KBBBBBFFFFFFFFBBBBBK......
-......KBBKGGGGK..KGGGGKBBK......
-......KKKGGGGK....KGGGGKKK......
-.........KKKK......KKKK.........
-`);
+    SPRITES.playerIdle = makeRearCarSprite({
+      body: [22, 138, 132],
+      bodyHi: [42, 198, 188],
+      bodyLo: [14, 96, 92],
+      glass: [12, 36, 54],
+      tail: [170, 36, 58],
+    });
 
-    SPRITES.pink = blit(`
-.........KKKKKKKKKK.........
-........KPPPPPPPPPPK........
-.......KPPWWWWWWWWPPK.......
-.......KPPPPPPPPPPPPK.......
-.......KPPPPKKKKPPPPK.......
-......KPPPPKRRRRKPPPPK......
-......KPPPPPFFFFFFPPPPK......
-......KPPKGGGGKKGGGGKPPK.....
-......KKKGGGGK..KGGGGKKK.....
-.........KKKK....KKKK........
-`);
+    SPRITES.pink = makeRearCarSprite({
+      body: [228, 62, 138],
+      bodyHi: [255, 120, 188],
+      bodyLo: [168, 38, 98],
+      glass: [48, 18, 42],
+    });
 
-    SPRITES.blue = blit(`
-.........KKKKKKKKKK.........
-........KUUUUUUUUUUK........
-.......KUUWWWWWWWWUUK.......
-.......KUUUUUUUUUUUUK.......
-.......KUUUUKKKKUUUUK.......
-......KUUUUKRRRRKUUUUK......
-......KUUUUUFFFFFFUUUUK......
-......KUUKGGGGKKGGGGKUUK.....
-......KKKGGGGK..KGGGGKKK.....
-.........KKKK....KKKK........
-`);
+    SPRITES.blue = makeRearCarSprite({
+      body: [34, 92, 210],
+      bodyHi: [88, 148, 255],
+      bodyLo: [20, 58, 158],
+      glass: [14, 32, 72],
+    });
 
-    SPRITES.violet = blit(`
-..........KKKKKKKK..........
-.........KVVVVVVVVVK.........
-........KVVWWWWWWVVVK........
-........KVVVVVVVVVVVK........
-........KVVVKKKKVVVVK........
-.......KVVVVKRRRRKVVVVK......
-.......KVVVVVFFFFFFVVVVK......
-.......KVVKGGGGKKGGGGKVVK.....
-.......KKKGGGGK..KGGGGKKK.....
-..........KKKK....KKKK........
-`);
+    SPRITES.violet = makeRearCarSprite({
+      body: [148, 58, 228],
+      bodyHi: [198, 108, 255],
+      bodyLo: [98, 32, 168],
+      glass: [36, 18, 68],
+    });
 
-    SPRITES.truck = blit(`
-......KKKKKKKKKKKKKKKK......
-......KTTTTTTTTTTTTTTK......
-......KTTXXXXXXXXXXTTK......
-......KTTTTTTTTTTTTTTK......
-......KTTKKTTTTTTKKTTK......
-.....KTTKNNKTTTTKNNKTTK.....
-.....KTTKKKKTTTTKKKKTTK.....
-.....KKFFFFFFFFFFFFFFKK.....
-.....KTKGGGGK..KGGGGKTK.....
-.....KKKGGGGK..KGGGGKKK.....
-........KKKK....KKKK........
-`);
-
-    SPRITES.tanker = blit(`
-.......KKKKKKKKKKKKKK.......
-......KFFFFFFFFFFFFFFK......
-......KFFNNNNNNNNNNFFK......
-......KFFFFFFFFFFFFFFK......
-......KOOOOOOOOOOOOOOK......
-.....KOOEEEEEEEEEEEEOOK.....
-.....KOOOOOOOOOOOOOOOOK.....
-.....KKFFFFFFFFFFFFFFKK.....
-.....KOKGGGGK..KGGGGKOK.....
-.....KKKGGGGK..KGGGGKKK.....
-........KKKK....KKKK........
-`);
+    SPRITES.truck = makeTruckSprite();
+    SPRITES.tanker = makeTankerSprite();
 
     SPRITES.garage = blit(`
 ......KKKKKKKKKKKK......
@@ -1044,7 +1149,34 @@ KKKKKKKKKKKKKKKK
     hitTimer: 0,
     serviceLock: false,
     finished: false,
+    gear: 1,
+    rpm: 0,
+    nitro: CFG.NITRO_MAX,
+    nitroActive: false,
+    shiftTimer: 0,
   };
+
+  function gearTopSpeed(gear) {
+    return CFG.MAX_SPEED * CFG.GEAR_TOPS[Math.max(0, Math.min(CFG.GEAR_MAX, gear) - 1)];
+  }
+
+  function updateGears(dt) {
+    const top = gearTopSpeed(player.gear);
+    player.rpm = top > 40 ? Math.min(1, player.speed / top) : 0;
+    player.shiftTimer = Math.max(0, player.shiftTimer - dt);
+
+    if (player.shiftTimer > 0 || player.speed < 120) return;
+
+    if (player.rpm >= CFG.SHIFT_UP_RPM && player.gear < CFG.GEAR_MAX) {
+      player.gear++;
+      player.shiftTimer = 0.32;
+      sfxShift();
+    } else if (player.rpm <= CFG.SHIFT_DOWN_RPM && player.gear > 1) {
+      player.gear--;
+      player.shiftTimer = 0.24;
+      sfxShift();
+    }
+  }
   const bgOff = { sky: 0, mountains: 0, city: 0, alpine: 0, coast: 0 };
 
   let mode = "title"; // title | playing | paused | gameover
@@ -1490,9 +1622,23 @@ KKKKKKKKKKKKKKKK
     // Curves shove the car toward the outside (centrifugal)
     player.x -= dx * speedPct * playerSegment.curve * CFG.CENTRIFUGAL;
 
-    if (keys.up) player.speed = accelerate(player.speed, CFG.ACCEL, dt);
-    else if (keys.down) player.speed = accelerate(player.speed, CFG.BREAKING, dt);
+    if (keys.up) {
+      const accelMul = 1 + (CFG.GEAR_MAX - player.gear) * 0.16;
+      player.speed = accelerate(player.speed, CFG.ACCEL * accelMul, dt);
+    } else if (keys.down) player.speed = accelerate(player.speed, CFG.BREAKING, dt);
     else player.speed = accelerate(player.speed, CFG.DECEL, dt);
+
+    if (keys.nitro && player.nitro > 0 && keys.up) {
+      player.nitroActive = true;
+      player.nitro = Math.max(0, player.nitro - CFG.NITRO_BURN * dt);
+      player.speed = accelerate(player.speed, CFG.NITRO_ACCEL, dt);
+      if (Math.random() < 0.2) sfxNitro();
+    } else {
+      player.nitroActive = false;
+      if (player.nitro < CFG.NITRO_MAX) {
+        player.nitro = Math.min(CFG.NITRO_MAX, player.nitro + CFG.NITRO_RECHARGE * dt);
+      }
+    }
 
     const offRoad = Math.abs(player.x) > 1;
     if (offRoad) {
@@ -1501,7 +1647,12 @@ KKKKKKKKKKKKKKKK
       }
     }
 
-    player.speed = limit(player.speed, 0, CFG.MAX_SPEED);
+    let speedCap = player.nitroActive ? CFG.MAX_SPEED : gearTopSpeed(player.gear);
+    player.speed = limit(player.speed, 0, speedCap);
+    updateGears(dt);
+    if (!player.nitroActive) {
+      player.speed = Math.min(player.speed, gearTopSpeed(player.gear));
+    }
     player.x = limit(player.x, -CFG.STEER_MARGIN, CFG.STEER_MARGIN);
     player.z = increase(player.z, dt * player.speed, trackLength);
     player.odometer += dt * player.speed;
@@ -1574,8 +1725,10 @@ KKKKKKKKKKKKKKKK
     damageFill.style.width = player.damage + "%";
     damagePct.textContent = Math.round(player.damage) + "%";
     damagePct.style.color = player.damage > 66 ? "#ff2d8a" : player.damage > 33 ? "#ffd36a" : "#3dff8a";
-    speedLabel.textContent = "HIZ: " + String(kmh).padStart(3, "0") + " km/s";
-    rpmFill.style.width = (player.speed / CFG.MAX_SPEED) * 100 + "%";
+    if (speedLabel) speedLabel.textContent = String(kmh).padStart(3, "0");
+    if (gearLabel) gearLabel.textContent = "VİTES " + player.gear;
+    if (rpmFill) rpmFill.style.width = player.rpm * 100 + "%";
+    if (nitroFill) nitroFill.style.width = player.nitro + "%";
   }
 
   // =====================================================================
@@ -1691,6 +1844,13 @@ KKKKKKKKKKKKKKKK
       spr.width * scale,
       spr.height * scale
     );
+    if (player.nitroActive) {
+      ctx.fillStyle = "rgba(62,240,255,0.75)";
+      ctx.fillRect(-10, -6, 8, 4);
+      ctx.fillRect(2, -6, 8, 4);
+      ctx.fillStyle = "rgba(255,120,40,0.55)";
+      ctx.fillRect(-6, -4, 12, 3);
+    }
     ctx.restore();
   }
 
@@ -1710,10 +1870,15 @@ KKKKKKKKKKKKKKKK
     player.hitTimer = 0;
     player.serviceLock = false;
     player.finished = false;
+    player.gear = 1;
+    player.rpm = 0;
+    player.nitro = CFG.NITRO_MAX;
+    player.nitroActive = false;
+    player.shiftTimer = 0;
     raceTime = 0;
     lastBiome = -1;
     bgOff.sky = bgOff.mountains = bgOff.city = bgOff.alpine = bgOff.coast = 0;
-    keys.left = keys.right = keys.up = keys.down = false;
+    keys.left = keys.right = keys.up = keys.down = keys.nitro = false;
 
     segments.forEach((s) => {
       s.cars = [];
@@ -1835,13 +2000,14 @@ KKKKKKKKKKKKKKKK
     overlay.classList.remove("hidden");
     overlayInner.innerHTML =
       "<h1>ZAMAN<br />YARIŞI</h1>" +
-      '<p class="ver">v1.5 — SAHİL · ŞEHİR · DAĞ (5 KM)</p>' +
+      '<p class="ver">v1.6 — SAHİL · ŞEHİR · DAĞ</p>' +
       '<p class="blink" id="overlay-prompt">BAŞLAMAK İÇİN ENTER / TIKLA</p>' +
       '<ul class="help"><li><kbd>↑</kbd><kbd>W</kbd> GAZ</li>' +
       "<li><kbd>↓</kbd><kbd>S</kbd> FREN</li>" +
       "<li><kbd>←</kbd><kbd>A</kbd> <kbd>→</kbd><kbd>D</kbd> DİREKSİYON</li>" +
+      "<li><kbd>BOŞLUK</kbd><kbd>SHIFT</kbd> NİTRO</li>" +
       "<li><kbd>P</kbd> DURAKLAT</li></ul>" +
-      '<p class="hint">Sınırsız yol · trafikten kaç · hasar %100 olunca biter · nadir serviste tamir ol.</p>' +
+      '<p class="hint">Otomatik vites · 5 vites · nitro ile ekstra hız · hasar %100 olunca biter.</p>' +
       '<button type="button" id="start-btn" class="arcade-btn">MOTORU ÇALIŞTIR</button>' +
       HOME_LINK;
     document.getElementById("start-btn").addEventListener("click", onConfirm);

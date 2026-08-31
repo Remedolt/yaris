@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=17" />
+  <link rel="stylesheet" href="style.css?v=19" />
 </head>
 <body>
   <div id="stage">
@@ -42,9 +42,12 @@
       <div class="hud-bottom">
         <button type="button" id="pause-btn" class="hud-btn">DURDUR</button>
         <div class="speedo">
-          <div class="speedo-ver">ZAMAN YARIŞI V1.5</div>
-          <div id="speed-label">HIZ: 000 km/s</div>
+          <div id="gear-label">VİTES 1</div>
+          <div id="speed-label">000</div>
+          <div class="speedo-unit">KM / H</div>
           <div class="rpm"><div id="rpm-fill"></div></div>
+          <div class="nitro-hint">NİTRO (NOS) BOŞLUK / SHIFT</div>
+          <div class="nitro-bar"><div id="nitro-fill"></div></div>
         </div>
       </div>
     </div>
@@ -52,15 +55,16 @@
     <div id="overlay">
       <div class="overlay-inner" id="overlay-inner">
         <h1>ZAMAN<br />YARIŞI</h1>
-        <p class="ver">v1.5 — SAHİL · ŞEHİR · DAĞ (5 KM)</p>
+        <p class="ver">v1.6 — SAHİL · ŞEHİR · DAĞ</p>
         <p class="blink" id="overlay-prompt">BAŞLAMAK İÇİN ENTER / TIKLA</p>
         <ul class="help">
           <li><kbd>↑</kbd><kbd>W</kbd> GAZ</li>
           <li><kbd>↓</kbd><kbd>S</kbd> FREN</li>
           <li><kbd>←</kbd><kbd>A</kbd> <kbd>→</kbd><kbd>D</kbd> DİREKSİYON</li>
+          <li><kbd>BOŞLUK</kbd><kbd>SHIFT</kbd> NİTRO</li>
           <li><kbd>P</kbd> DURAKLAT</li>
         </ul>
-        <p class="hint">Sınırsız yol · trafikten kaç · hasar %100 olunca biter · nadir serviste tamir ol.</p>
+        <p class="hint">Otomatik vites · 5 vites · nitro ile ekstra hız · hasar %100 olunca biter.</p>
         <button type="button" id="start-btn" class="arcade-btn">MOTORU ÇALIŞTIR</button>
         <p class="home-link"><a class="arcade-btn alt" href="https://www.oyuncum.site/" target="_top" rel="noopener noreferrer">ANA SAYFA</a></p>
       </div>
@@ -74,6 +78,6 @@
     </div>
   </div>
 
-  <script src="game.js?v=17"></script>
+  <script src="game.js?v=19"></script>
 </body>
 </html>
